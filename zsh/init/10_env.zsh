@@ -4,7 +4,6 @@
 export LANG="en_US.UTF-8"
 export PATH=$PATH:$HOME/bin
 
-export PATH="/usr/local/opt/mysql@5.7/bin:$PATH"
 
 if is_osx; then
     export PATH=$PATH:/usr/local/bin:/bin
@@ -13,7 +12,7 @@ fi
 #nvm
 export NVM_DIR=~/.nvm
 source $(brew --prefix nvm)/nvm.sh
-nvm use 10
+# nvm use 10
 
 #phpbrew
 [[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc
@@ -24,6 +23,9 @@ if [ -d "${PYENV_ROOT}" ]; then
     export PATH=${PYENV_ROOT}/bin:$PATH
     eval "$(pyenv init -)"
 fi
+
+export PATH="/usr/local/opt/mysql@5.7/bin:$PATH"
+export PATH=$HOME/.config/composer/vendor/bin:$PATH
 
 #rbenv
 export RBENV_ROOT=/usr/local/var/rbenv
