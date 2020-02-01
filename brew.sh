@@ -1,11 +1,11 @@
-binaries=(
+brew=(
   reattach-to-user-namespace
+  nvm
   curl
   docker
   ffmpeg
   git
   jq
-  nvm
   rbenv
   pyenv
   the_silver_searcher
@@ -13,40 +13,39 @@ binaries=(
   youtube-dl
 )
 
-coreApps=(
+cask=(
   1password
   dropbox
   karabiner-elements
   alfred
   bettertouchtool
   divvy
-  notion
-  slack
   bartender
   rightfont
-  now
+  figma
   sketch
   visual-studio-code
   encryptme
   choosy
   spotify
+  notion
+  slack
 )
 
-apps=(
+cask2=(
+  station
   adobe-creative-cloud
   airtable
   coderunner
   contexts
-  craftmanager
   dash
   expressvpn
   flume
   iconjar
-  iterm2
   paw
   sequel-pro
   the-clock
-  tower2
+  tower
 )
 
 browsers=(
@@ -56,7 +55,8 @@ browsers=(
   google-chrome-canary
   opera
   safari-technology-preview
-  brave
+  brave-browser
+  microsoft-edge
   tor-browser
 )
 
@@ -64,20 +64,20 @@ xcode-select --install
 sudo xcodebuild -license
 
 echo "Installing homebrew..."
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew update
 brew upgrade
 
-echo "installing binaries..."
-brew install ${binaries[@]}
+echo "installing packages..."
+brew install ${brew[@]}
 
-echo "installing core apps..."
+echo "installing primary apps..."
 brew tap homebrew/cask-versions
-brew cask install ${coreApps[@]}
+brew cask install ${cask[@]}
 brew cask alfred link
 
 echo "installing apps..."
-brew cask install ${apps[@]}
+brew cask install ${cask2[@]}
 
 echo "installing browsers..."
 brew cask install ${browsers[@]}

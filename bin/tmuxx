@@ -1,100 +1,62 @@
-#!/bin/zsh
+#!/bin/bash
 
-# load some utilities
-source ~/.dotfiles/zsh/install || exit 1
-
-# tmux_automatically_attach attachs tmux session automatically
-is_ssh_running && exit 0
+. "$DOTPATH"/etc/lib/util.zsh
 
 if is_screen_or_tmux_running; then
-    if is_tmux_runnning; then
-        export DISPLAY="$TMUX"
+    ! is_exists 'tmux' && exit 1
+
+    if is_tmux_running; then
+        # echo "[38;5;160m _   _      _ _              _                          _ [0m"
+        # echo "[38;5;208m| | | | ___| | | ___       _| |_ _ __ ___  _   ___  __ | |[0m"
+        # echo "[38;5;226m| |_| |/ _ \ | |/ _ \     |_  __| '_ \ _ \| | | \ \/ / | |[0m"
+        # echo "[38;5;046m|  _  |  __/ | | (_) | _    | |_| | | | | | |_| |>  <  |_|[0m"
+        # echo "[38;5;033m|_| |_|\___|_|_|\___/ | )    \__|_| |_| |_|\__,_/_/\_\ (_)[0m"
+        # echo "[38;5;129m                      |/                                  [0m"
+
+        if has 'landscape-sysinfo'; then
+            echo
+            landscape-sysinfo --exclude-sysinfo-plugins=LandscapeLink
+            echo
+        fi
     elif is_screen_running; then
-        : # For GNU screen
+        echo "This is on screen."
     fi
 else
-    if ! is_ssh_running; then
-        if ! (( $+commands[tmux] )); then
-            echo "tmux not found" 1>&2
-            exit 1
-        fi
+    if ! has 'tmux'; then
+        echo 'Error: tmux command not found' 2>&1
+        exit 1
+    fi
 
-        if tmux has-session &>/dev/null && tmux list-sessions | grep -qE '.*]$'; then
-            # detached session exists
-            tmux list-sessions | perl -pe 's/(^.*?):/\033[31m$1:\033[m/'
-            printf "tmux: attach? (y/N num/session-name) "
-            read
-            if [[ $REPLY =~ ^[Yy]$ || $REPLY == '' ]]; then
-                if tmux attach-session; then
-                    echo "$(tmux -V) attached session"
-                    exit 0
-                fi
-            elif tmux list-sessions | grep -q "^$REPLY:"; then
-                if tmux attach -t "$REPLY"; then
-                    echo "$(tmux -V) attached session"
-                    exit 0
-                fi
+    if tmux has-session >/dev/null 2>&1 && tmux list-sessions | grep -qE '.*]$'; then
+        # detached session exists
+
+        tmux list-sessions
+        echo -n "Tmux: attach? (y/N/S/num) "
+        read
+        if [[ "$REPLY" =~ ^[Yy]$ ]] || [[ "$REPLY" == '' ]]; then
+            tmux -2 attach-session
+            if [ $? -eq 0 ]; then
+                echo "$(tmux -V) attached session"
+                return 0
             fi
+        elif [[ "$REPLY" =~ ^[0-9]+$ ]]; then
+            tmux -2 attach -t "$REPLY"
+            if [ $? -eq 0 ]; then
+                echo "$(tmux -V) attached session"
+                exit
+            fi
+        elif [[ "$REPLY" =~ ^[Ss]$ ]]; then
+            tmux -2 new-session
         fi
-
-        if is_osx && (( $+commands[reattach-to-user-namespace] )); then
+    else
+        if is_osx && is_exists 'reattach-to-user-namespace'; then
             # on OS X force tmux's default command
             # to spawn a shell in the user's namespace
-            tmux_login_shell="/bin/zsh"
-            tmux_config=$(cat ~/.tmux.conf <(echo 'set-option -g default-command "reattach-to-user-namespace -l' $tmux_login_shell'"'))
+            tmux_config=$(cat $HOME/.tmux.conf <(echo 'set-option -g default-command "reattach-to-user-namespace -l $SHELL"'))
             tmux -f <(echo "$tmux_config") new-session && echo "$(tmux -V) created new session supported OS X"
         else
-            tmux new-session && echo "tmux created new session"
+            tmux -2 new-session
         fi
     fi
 fi
 
-
-# #!/bin/bash
-
-# . "$DOTPATH"/etc/lib/util.zsh
-
-# is_ssh_running && exit 0
-
-# if is_screen_or_tmux_running; then
-#     if is_tmux_runnning; then
-#         export DISPLAY="$TMUX"
-#     elif is_screen_running; then
-#         : # For GNU screen
-#     fi
-# else
-#     if ! is_ssh_running; then
-#         if ! (( $+commands[tmux] )); then
-#             echo "tmux not found" 1>&2
-#             exit 1
-#         fi
-
-#         if tmux has-session &>/dev/null && tmux list-sessions | grep -qE '.*]$'; then
-#             # detached session exists
-#             tmux list-sessions | perl -pe 's/(^.*?):/\033[31m$1:\033[m/'
-#             printf "tmux: attach? (y/N num/session-name) "
-#             read
-#             if [[ $REPLY =~ ^[Yy]$ || $REPLY == '' ]]; then
-#                 if tmux attach-session; then
-#                     echo "$(tmux -V) attached session"
-#                     exit 0
-#                 fi
-#             elif tmux list-sessions | grep -q "^$REPLY:"; then
-#                 if tmux attach -t "$REPLY"; then
-#                     echo "$(tmux -V) attached session"
-#                     exit 0
-#                 fi
-#             fi
-#         fi
-
-#         if is_osx && (( $+commands[reattach-to-user-namespace] )); then
-#             # on OS X force tmux's default command
-#             # to spawn a shell in the user's namespace
-#             tmux_login_shell="/bin/zsh"
-#             tmux_config=$(cat ~/.tmux.conf <(echo 'set-option -g default-command "reattach-to-user-namespace -l' $tmux_login_shell'"'))
-#             tmux -f <(echo "$tmux_config") new-session && echo "$(tmux -V) created new session supported OS X"
-#         else
-#             tmux new-session && echo "tmux created new session"
-#         fi
-#     fi
-# fi

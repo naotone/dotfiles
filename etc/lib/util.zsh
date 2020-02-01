@@ -173,6 +173,31 @@ ink() {
     printf "${open}${color}${text}${close}"
 }
 
+ink256() {
+    if [ "$#" -eq 0 -o "$#" -gt 2 ]; then
+        echo "Usage: ink256 <color_number> <text>"
+        echo "color_number:"
+        echo " 0-256 "
+        return 1
+    fi
+
+    local open="\033["
+    local close="${open}0m"
+
+    local text="$1"
+    local color="$close"
+
+    if [ "$#" -eq 2 ]; then
+        text="$2"
+
+        if [ $1 -ge 1 -a $1 -le 256 ]; then
+            color="38;5;$1m"
+        fi
+    fi
+
+    printf "${open}${color}${text}${close}"
+}
+
 logging() {
     if [ "$#" -eq 0 -o "$#" -gt 2 ]; then
         echo "Usage: ink <fmt> <msg>"
