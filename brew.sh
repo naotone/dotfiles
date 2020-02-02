@@ -1,5 +1,7 @@
 brew=(
   reattach-to-user-namespace
+  fabianishere/personal/pam_reattach
+  kryptco/tap/kr
   nvm
   curl
   docker
