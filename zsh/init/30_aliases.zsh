@@ -10,8 +10,6 @@ alias code.='code .'
 alias subl.='subl .'
 alias atom.='atom .'
 
-alias ngrok-fd='http 3000 --subdomain=fd --auth=naotone:123 --host-header="localhost:3000"'
-
 alias wgetAll='wget -r -l 0 -c -t 0'
 alias rsyncDownload='rsync -ahv --progress'
 

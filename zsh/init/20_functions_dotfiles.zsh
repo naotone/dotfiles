@@ -12,7 +12,7 @@ dotfiles_download() {
     if has "git"; then
         git clone "$DOTFILES_GITHUB" "$DOTPATH"
     elif has "curl" || has "wget"; then
-        tarball="https://github.com/s4kr4/dotfiles/archive/master.tar.gz"
+        tarball="https://github.com/naotone/dotfiles/archive/master.tar.gz"
 
         if has "curl"; then
             curl -L "$tarball"

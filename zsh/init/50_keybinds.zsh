@@ -10,4 +10,4 @@ bindkey '^r' peco-select-history
 bindkey -s '^u' 'cd\n'
 bindkey '^g^a' peco-select-gitadd
 
-
+# zplug load
