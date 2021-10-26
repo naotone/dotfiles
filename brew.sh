@@ -4,7 +4,7 @@ brew=(
   kryptco/tap/kr
   nvm
   curl
-  docker
+  # docker
   ffmpeg
   git
   jq
@@ -23,6 +23,7 @@ cask=(
   divvy
   bartender
   figma
+  hammerspoon
   visual-studio-code
   notion
   slack
@@ -34,11 +35,16 @@ cask2=(
   coderunner
   contexts
   dash
+  deepl
   dropbox
   expressvpn
+  grammarly
+  gray
   iconjar
+  numi
   paw
   rightfont
+  sip
   sketch
   spotify
   # sequel-pro
