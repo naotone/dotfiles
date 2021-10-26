@@ -1,3 +1,12 @@
+if has 'exa'; then
+    alias l='exa -h1 --git --time-style=iso --group-directories-first --icons'
+    alias ll='exa -hl --git --time-style=iso --group-directories-first --icons'
+    alias la='ll -a'
+    alias lt='l -T'
+    alias llt='ll -T'
+    alias lat='la -T'
+fi
+
 alias q='exit'
 alias crontab='crontab -i'
 
@@ -7,28 +16,21 @@ alias c='clear'
 alias open.='open .'
 
 alias code.='code .'
-alias subl.='subl .'
-alias atom.='atom .'
 
 alias wgetAll='wget -r -l 0 -c -t 0'
 alias rsyncDownload='rsync -ahv --progress'
 
-alias hhkb='sudo kextunload /System/Library/Extensions/AppleUSBTopCase.kext/Contents/PlugIns/AppleUSBTCKeyboard.kext/'
-alias aaplkb='sudo kextload /System/Library/Extensions/AppleUSBTopCase.kext/Contents/PlugIns/AppleUSBTCKeyboard.kext/'
-
 alias ResetLaunchPad='defaults write com.apple.dock ResetLaunchPad -bool true; killall Dock'
-
-alias cdOF='cd ~/openFrameworks/*9*'
-alias ofProj='open ~/openFrameworks/*4/projectGenerator_osx/projectGenerator.app'
-alias cdDropbox='cd ~/Dropbox/'
-alias cdProjects='cd ~/Dropbox/Projects/'
+alias airport='/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
 alias chrome="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 alias chrome-canary="/Applications/Google\ Chrome\ Canary.app/Contents/MacOS/Google\ Chrome\ Canary"
 alias chromium="/Applications/Chromium.app/Contents/MacOS/Chromium"
 
-alias dcwp='docker-compose exec --user www-data phpfpm wp'
-alias dcbash='docker-compose exec --user root phpfpm bash'
+alias awsdo='aws --endpoint=https://nyc3.digitaloceanspaces.com'
+
+# alias dcwp='docker-compose exec --user www-data phpfpm wp'
+# alias dcbash='docker-compose exec --user root phpfpm bash'
 
 case "${OSTYPE}" in
 darwin*)

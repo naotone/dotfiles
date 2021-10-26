@@ -11,6 +11,7 @@
 	forceSignAnnotated = true
 [core]
 	editor = vim
+	ignorecase = false
 [ghq]
 	root = /Users/naotone/Code/00_Github
 [filter "lfs"]

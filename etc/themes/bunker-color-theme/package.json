@@ -1,0 +1,34 @@
+{
+    "name": "bunker-color-theme",
+    "displayName": "Bunker Color Theme",
+    "description": "A dark based color theme.",
+    "version": "0.0.1",
+    "publisher": "naotone",
+    "author": {
+        "name": "Naoto Yoshimoto",
+        "email": "vscode@naotone.com"
+    },
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.19.0"
+    },
+    "categories": [
+        "Themes"
+    ],
+    "contributes": {
+        "themes": [
+            {
+                "label": "Bunker",
+                "uiTheme": "vs-dark",
+                "path": "./themes/Bunker-color-theme.json"
+            }
+        ]
+    },
+    "scripts": {
+        "lint": "./node_modules/.bin/eslint ./themes/*.json"
+    },
+    "dependencies": {
+        "eslint": "^4.15.0",
+        "eslint-plugin-json": "^1.2.0"
+    }
+}

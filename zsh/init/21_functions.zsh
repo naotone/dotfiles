@@ -95,6 +95,19 @@ function cpdf() {
       ${@:6:($#-5)} < /dev/null
 }
 
+function pdfmin(){
+  local cnt=0
+  for i in $@; do
+    \gs -sDEVICE=pdfwrite \
+      -dCompatibilityLevel=1.4 \
+      -dPDFSETTINGS=/ebook \
+      -dNOPAUSE -dDEBUG -dBATCH \
+      -sOutputFile=${i%%.*}.min.pdf ${i} &
+    (( (cnt += 1) % 4 == 0 )) && wait
+  done
+  wait && return 0
+}
+
 function generateThumbnail() {
   convert $1 -resize 800x800 -quality 90 -background white -transparent white  -profile '/Library/Application Support/Adobe/Color/Profiles/Recommended/JapanColor2001Coated.icc' -colorspace CMYK  -profile '/Library/Application Support/Adobe/Color/Profiles/Recommended/sRGB Color Space Profile.icm' -colorspace sRGB $1.jpg
 }

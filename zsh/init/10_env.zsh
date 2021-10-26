@@ -1,12 +1,14 @@
 . "$DOTPATH"/etc/lib/util.zsh
 
 # export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+
 export LANG="en_US.UTF-8"
+
 export PATH=$PATH:$HOME/bin
 
-
 if is_osx; then
-    export PATH=$PATH:/usr/local/bin:/bin
+  export PATH="/usr/local/opt/curl/bin:$PATH"
+  export PATH=$PATH:/usr/local/bin:/bin
 fi
 
 #nvm
@@ -34,6 +36,16 @@ if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 # export PATH=/Developer/NVIDIA/CUDA-7.0/bin:$PATH
 # export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-7.0/lib:$DYLD_LIBRARY_PATH
 
+export JAVA_PATH="/usr/local/opt/openjdk"
+if [ -d "${JAVA_PATH}" ]; then
+    export PATH=${JAVA_PATH}/bin:$PATH
+fi
+
+export GO_PATH="${HOME}/go"
+if [ -d "${GO_PATH}" ]; then
+    export PATH=${GO_PATH}/bin:$PATH
+fi
+
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/Users/naotone/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/naotone/google-cloud-sdk/path.zsh.inc'; fi
 
@@ -42,9 +54,9 @@ if [ -f '/Users/naotone/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/n
 
 # Deploy local settings
 if [[ -e ${HOME}/bin_local ]]; then
-    PATH="$HOME/bin_local:$PATH"
+  PATH="$HOME/bin_local:$PATH"
 fi
 if [[ -e ${HOME}/.env_local.zsh ]]; then
-    source ${HOME}/.env_local.zsh
+  source ${HOME}/.env_local.zsh
 fi
 

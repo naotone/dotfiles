@@ -17,35 +17,31 @@ brew=(
 
 cask=(
   1password
-  dropbox
-  karabiner-elements
   alfred
-  bettertouchtool
+  # bettertouchtool
+  choosy
   divvy
   bartender
-  rightfont
   figma
-  sketch
   visual-studio-code
-  encryptme
-  choosy
-  spotify
   notion
   slack
 )
 
 cask2=(
-  station
   adobe-creative-cloud
   airtable
   coderunner
   contexts
   dash
+  dropbox
   expressvpn
-  flume
   iconjar
   paw
-  sequel-pro
+  rightfont
+  sketch
+  spotify
+  # sequel-pro
   the-clock
   tower
 )
@@ -65,21 +61,21 @@ browsers=(
 xcode-select --install
 sudo xcodebuild -license
 
-echo "Installing homebrew..."
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew update
-brew upgrade
+# echo "Installing homebrew..."
+# /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+# brew update
+# brew upgrade
 
-echo "installing packages..."
-brew install ${brew[@]}
+# echo "installing packages..."
+# brew install ${brew[@]}
 
-echo "installing primary apps..."
-brew tap homebrew/cask-versions
-brew cask install ${cask[@]}
-brew cask alfred link
+# echo "installing primary apps..."
+# brew tap homebrew/cask-versions
+# brew cask install ${cask[@]}
+# brew cask alfred link
 
 echo "installing apps..."
-brew cask install ${cask2[@]}
+brew install --cask ${cask2[@]}
 
-echo "installing browsers..."
-brew cask install ${browsers[@]}
+# echo "installing browsers..."
+# brew cask install ${browsers[@]}
