@@ -1,7 +1,7 @@
 brew=(
   reattach-to-user-namespace
   fabianishere/personal/pam_reattach
-  kryptco/tap/kr
+  # kryptco/tap/kr Cannot install with brew. curl https://krypt.co/kr | sed "s/11.0/12.0/g" | sh
   nvm
   curl
   # docker
@@ -9,6 +9,7 @@ brew=(
   git
   jq
   rbenv
+  peco
   pyenv
   the_silver_searcher
   wget
@@ -32,12 +33,12 @@ cask=(
 cask2=(
   adobe-creative-cloud
   airtable
+  cleanshot
   coderunner
   contexts
   dash
   deepl
   dropbox
-  expressvpn
   grammarly
   gray
   iconjar
