@@ -8,7 +8,7 @@ if ! has "tmux"; then
         exit 1
     else
         case "$(get_os)" in
-            osx)
+            macos)
                 return
                 ;;
 
@@ -23,7 +23,7 @@ if ! has "tmux"; then
                 ;;
 
             *)
-                log_fail "ERROR: This script is only supported OSX or Linux"
+                log_fail "ERROR: This script is only supported macOS or Linux"
                 return
                 ;;
         esac

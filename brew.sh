@@ -9,10 +9,10 @@ brew=(
   git
   jq
   rbenv
-  peco
   pyenv
   the_silver_searcher
   wget
+  yarn
   youtube-dl
 )
 
@@ -39,6 +39,7 @@ cask2=(
   dash
   deepl
   dropbox
+  expressvpn
   grammarly
   gray
   iconjar
@@ -65,24 +66,24 @@ browsers=(
   tor-browser
 )
 
-xcode-select --install
-sudo xcodebuild -license
+#xcode-select --install
+#sudo xcodebuild -license
 
 # echo "Installing homebrew..."
 # /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 # brew update
 # brew upgrade
 
-# echo "installing packages..."
-# brew install ${brew[@]}
+#echo "installing packages..."
+#brew install ${brew[@]}
 
-# echo "installing primary apps..."
-# brew tap homebrew/cask-versions
-# brew cask install ${cask[@]}
-# brew cask alfred link
+#echo "installing primary apps..."
+#brew tap homebrew/cask-versions
+#brew install --cask ${cask[@]}
+#brew link alfred
+#
+#echo "installing apps..."
+#brew install --cask ${cask2[@]}
 
-echo "installing apps..."
-brew install --cask ${cask2[@]}
-
-# echo "installing browsers..."
-# brew cask install ${browsers[@]}
+echo "installing browsers..."
+brew install --cask ${browsers[@]}

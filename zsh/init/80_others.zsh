@@ -3,11 +3,11 @@ autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
 add-zsh-hook chpwd chpwd_recent_dirs
 
 #cdr
-# zstyle ':completion:*' recent-dirs-insert both
-# zstyle ':chpwd:*' recent-dirs-max 500
-# zstyle ':chpwd:*' recent-dirs-default true
-# zstyle ':chpwd:*' recent-dirs-file "$HOME/.cache/shell/chpwd-recent-dirs"
-# zstyle ':chpwd:*' recent-dirs-pushd true
+zstyle ':completion:*' recent-dirs-insert both
+zstyle ':chpwd:*' recent-dirs-max 500
+zstyle ':chpwd:*' recent-dirs-default true
+zstyle ':chpwd:*' recent-dirs-file "$HOME/.cache/shell/chpwd-recent-dirs"
+zstyle ':chpwd:*' recent-dirs-pushd true
 
 zle -N peco-select-history
 zle -N peco-go-to-dir
@@ -20,7 +20,7 @@ zle -N peco-select-gitadd
 # autoload predict-on
 # #predict-on
 
-# # Hilight ls command
+# # ls command
 # export LS_COLORS='no=00:fi=00:di=01;36:ln=36:pi=31:so=33:bd=44;37:cd=44;37:ex=01;32:mi=00:or=36'
 # export LSCOLORS=GxgxdxbxCxegedabagacad
 # zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
@@ -47,7 +47,6 @@ zle -N peco-select-gitadd
 # # Enable brace expansion
 # setopt brace_ccl
 
-
 # # --------------------------------------------------------------------
 # #  Delimiter settings
 # # --------------------------------------------------------------------
@@ -59,23 +58,22 @@ zle -N peco-select-gitadd
 # zstyle ':zle:*' word-chars ' /=;@:{}[]()<>,|.'
 # zstyle ':zle:*' word-style unspecified
 
-
 # # --------------------------------------------------------------------
 # #  Command history
 # # --------------------------------------------------------------------
+# unsetopt EXTENDED_HISTORY
 
-# HISTFILE=~/.zsh_history
-# HISTSIZE=10000
-# SAVEHIST=10000
-# setopt hist_ignore_dups
-# setopt hist_ignore_all_dups
-# setopt hist_reduce_blanks
-# #setopt share_history
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt hist_ignore_dups
+setopt hist_ignore_all_dups
+setopt hist_reduce_blanks
+setopt share_history
 
-# zshaddhistory() {
-#     whence ${${(z)1}[1]} >| /dev/null || return 1
-# }
-
+zshaddhistory() {
+    whence ${${(z)1}[1]} >| /dev/null || return 1
+}
 
 # # --------------------------------------------------------------------
 # #  Make cd comfortable
@@ -84,7 +82,6 @@ zle -N peco-select-gitadd
 # setopt auto_cd
 # setopt auto_pushd
 # setopt pushd_ignore_dups
-
 
 # # --------------------------------------------------------------------
 # #  Others

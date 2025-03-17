@@ -12,6 +12,144 @@
 # }
 # zle -N cmd_history
 
+
+# gtac: brew install coreutils / brew install fzf
+function fzf-select-history() {
+  local cmd
+  cmd=$(awk '
+    BEGIN { cmd = ""; firstLine = ""; }
+    /^: [0-9]{10,}:[01];/ {
+      if (cmd != "") {
+        if (firstLine == "") {
+          firstLine = $0;
+        }
+        print cmd "\t" firstLine;
+        cmd = "";
+        firstLine = "";
+      }
+      firstLine = $0;
+      cmd = substr($0, index($0, ";") + 1);
+    }
+    !/^: [0-9]{10,}:[01];/ {
+      cmd = cmd "\\n" $0;
+    }
+    END {
+      if (cmd != "") print cmd "\t" firstLine;
+    }
+  ' "$HISTFILE" |
+    tac | awk -F"\t" '!seen[$1]++ && $2 != "" {print $0}' |
+    fzf --query "$LBUFFER" --reverse --multi --delimiter="\t" --with-nth=1 \
+        --preview "echo -e \"\033[90mCommand\033[0m\";
+                   echo {1};
+                   echo \"\";
+                   echo -e \"\033[90mWrapped\033[0m\";
+                   echo {1} | sed 's/\\\\n/\n/g' | fold -s -w 120;
+                  #  echo \"\";
+                  #  echo -e \"\033[Fist Line\033[0m\";
+                  #  echo {2};
+                   " \
+        --bind "ctrl-x:execute(
+            # Debug info
+            # echo \"=== Deleting entry ===\" > /tmp/fzf_history_debug.log
+            # echo \"Command: {1}\" >> /tmp/fzf_history_debug.log
+            # echo \"First Line: {2}\" >> /tmp/fzf_history_debug.log
+            # echo \"=== Before deletion ===\" >> /tmp/fzf_history_debug.log
+            # head -n 10 \"$HISTFILE\" >> /tmp/fzf_history_debug.log
+
+            timestamp=$(date +%Y%m%d%H%M%S)
+            tmpfile=\"/tmp/zsh_history.\$timestamp.tmp\"
+
+            (awk -v target="{2}" '
+              BEGIN {
+                # print \"Target for deletion:  \"target >> \"/tmp/fzf_history_debug.log\"
+                skip = 0;
+              }
+              /^: [0-9]{10,}:[01];/ {
+                # print \"First Line: \"\$0 >> \"/tmp/fzf_history_debug.log\"
+                # if (index(\$0, target) != 0) {
+                if (\$0 == target){
+                  # print \"Unmatched for deletion: \" \$0 >> \"/tmp/fzf_history_debug.log\"
+                  skip = 1;
+                } else {
+                  # print \"Matched for deletion: \" \$0 >> \"/tmp/fzf_history_debug.log\"
+                  skip = 0;
+                  print;
+                }
+              }
+              !/^: [0-9]{10,}:[01];/ {
+                # print \"Deleting line: \"\$0 >> \"/tmp/fzf_history_debug.log\"
+                if (!skip) print;
+              }
+            ' $HISTFILE > \$tmpfile && cp \$tmpfile $HISTFILE)
+
+            # echo \"=== After deletion ===\" >> /tmp/fzf_history_debug.log
+            # head -n 10 \"$HISTFILE\" >> /tmp/fzf_history_debug.log
+
+        )+reload(awk '
+          BEGIN { cmd = \"\"; firstLine = \"\"; }
+          /^: [0-9]+:[0-9]+;/ {
+            if (cmd != \"\") {
+              if (firstLine == \"\") {
+                firstLine = \$0;
+              }
+              print cmd \"\\t\" firstLine;
+              cmd = \"\";
+              firstLine = \"\";
+            }
+            firstLine = \$0;
+            cmd = substr(\$0, index(\$0, \";\") + 1);
+          }
+          !/^: [0-9]+:[0-9]+;/ {
+            cmd = cmd \"\\\\n\" \$0;
+            firstLine = firstLine \"\\n\" \$0;
+          }
+          END {
+            if (cmd != \"\") print cmd \"\\t\" firstLine;
+          }
+
+        ' $HISTFILE | tac | awk -F\"\\t\" \"!seen[\\\$1]++ && \\\$2 != \\\"\\\" {print \\\$0}\")"\
+        --bind "ctrl-q:execute(
+            echo {1} | sed 's/\\\\n/\\n/g' | pbcopy
+        )" \
+  )
+  if [[ -n "$cmd" ]]; then
+    # Extract just the command part (before the tab)
+    cmd=$(echo "$cmd" | cut -f1 | sed 's/\\n/\n/g')
+    BUFFER="$cmd"
+    CURSOR=$#BUFFER
+    zle accept-line
+  fi
+}
+zle -N fzf-select-history
+
+function fzf-cdr() {
+    local selected=$(cdr -l | awk '{print $2}' | fzf --reverse)
+    if [[ -n "$selected" ]]; then
+        BUFFER="cd ${(Q)selected}"
+        zle accept-line
+    fi
+    zle reset-prompt
+}
+zle -N fzf-cdr
+
+function fzf-go-to-dir() {
+    local dir
+    dir=$(
+        {
+        find "${HOME}" -mindepth 1 -maxdepth 5 -type d \( -name "node_modules" -o -name ".git" \) -prune -o -type d -print 2>/dev/null
+        find / -mindepth 1 -maxdepth 3 -type d \( -name "node_modules" -o -name ".git" \) -prune -o -type d -print 2>/dev/null
+        } | fzf --reverse
+    )
+    if [[ -n "$dir" ]]; then
+        dir="${(Q)dir}"
+        dir="${dir/#$HOME/~}"  # $HOME を ~ に変換
+        BUFFER="cd $dir"
+        zle accept-line
+    fi
+}
+zle -N fzf-go-to-dir
+
+#Peco
 function peco-select-history() {
     local tac
     if which tac > /dev/null; then
@@ -101,7 +239,7 @@ function pdfmin(){
     \gs -sDEVICE=pdfwrite \
       -dCompatibilityLevel=1.4 \
       -dPDFSETTINGS=/ebook \
-      -dNOPAUSE -dDEBUG -dBATCH \
+      -dNOPAUSE -dBATCH \
       -sOutputFile=${i%%.*}.min.pdf ${i} &
     (( (cnt += 1) % 4 == 0 )) && wait
   done

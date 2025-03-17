@@ -85,22 +85,34 @@ os_detect() {
     export PLATFORM
     case "$(ostype)" in
         *'linux'*)  PLATFORM='linux'   ;;
-        *'darwin'*) PLATFORM='osx'     ;;
+        *'darwin'*) PLATFORM='macos'     ;;
         *'bsd'*)    PLATFORM='bsd'     ;;
+        *'cygwin'*) PLATFORM='cygwin'  ;;
         *)          PLATFORM='unknown' ;;
     esac
 }
 
-# is_osx returns true if running OS is Macintosh
-is_osx() {
+processor_detect() {
+    export PROCESSOR
+    case "$(uname -m)" in
+        *'arm64'*)  PLATFORM='arm64'   ;;
+        *'x86_64'*) PLATFORM='x86_64'     ;;
+        *)          PLATFORM='unknown' ;;
+    esac
+}
+
+
+# is_macos returns true if running OS is Macintosh
+is_macos() {
     os_detect
-    if [ "$PLATFORM" = "osx" ]; then
+    if [ "$PLATFORM" = "macos" ]; then
         return 0
     else
         return 1
     fi
 }
-alias is_mac=is_osx
+
+alias is_mac=is_macos
 
 # is_linux returns true if running OS is GNU/Linux
 is_linux() {
@@ -125,7 +137,7 @@ is_bsd() {
 # get_os returns OS name of the platform that is running
 get_os() {
     local os
-    for os in osx linux bsd; do
+    for os in macos linux bsd; do
         if is_$os; then
             echo $os
         fi

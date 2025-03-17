@@ -19,15 +19,29 @@ ostype() {
     uname | lower
 }
 
+processortype() {
+    # shellcheck disable=SC2119
+    uname -m | lower
+}
+
 # os_detect export the PLATFORM variable as you see fit
 os_detect() {
     export PLATFORM
     case "$(ostype)" in
         *'linux'*)  PLATFORM='linux'   ;;
-        *'darwin'*) PLATFORM='osx'     ;;
+        *'darwin'*) PLATFORM='macos'     ;;
         *'bsd'*)    PLATFORM='bsd'     ;;
         *'cygwin'*) PLATFORM='cygwin'  ;;
         *)          PLATFORM='unknown' ;;
+    esac
+}
+
+processor_detect() {
+    export PROCESSOR
+    case "$(processortype)" in
+        *'arm64'*)  PROCESSOR='arm64'   ;;
+        *'x86_64'*) PROCESSOR='x86_64'     ;;
+        *)          PROCESSOR='unknown' ;;
     esac
 }
 
@@ -45,16 +59,28 @@ distribution_detect() {
 
 }
 
-# is_osx returns true if running OS is Macintosh
-is_osx() {
+# is_macos returns true if running OS is Macintosh
+is_macos() {
     os_detect
-    if [ "$PLATFORM" = "osx" ]; then
+    if [ "$PLATFORM" = "macos" ]; then
         return 0
     else
         return 1
     fi
 }
-alias is_mac=is_osx
+alias is_mac=is_macos
+
+is_appleSilicon(){
+    os_detect
+    processor_detect
+    if [ "$PLATFORM" = "macos" ]; then
+        if [ "$PROCESSOR" = "arm64" ]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
 
 # is_linux returns true if running OS is GNU/Linux
 is_linux() {
@@ -107,7 +133,7 @@ is_centos() {
 # get_os returns OS name of the platform that is running
 get_os() {
     local os
-    for os in osx linux bsd cygwin; do
+    for os in macos linux bsd cygwin; do
         if is_$os; then
             echo $os
         fi
@@ -338,7 +364,7 @@ contains() {
 
 install() {
     case "$(get_os)" in
-        osx)
+        macos)
             if has "brew"; then
                 log_echo "Installing ${@} with Homebrew..."
                 brew install "$@"

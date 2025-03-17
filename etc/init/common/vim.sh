@@ -26,7 +26,7 @@ if [[ -z "$(vim --version | head -n 1 | grep 8.0)" ]]; then
                 ;;
 
             *)
-                log_fail "ERROR: This script is only supported OSX or Linux"
+                log_fail "ERROR: This script is only supported macOS or Linux"
                 return
                 ;;
         esac

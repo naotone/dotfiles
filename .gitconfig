@@ -2,20 +2,25 @@
 	undo = "!f() { \\\n    echo \"Did you stash or commit all files?\"\n    read i\n    if [ \"$i\" = \"yes\" ]; then\n      command git reset --hard $(git rev-parse --abbrev-ref HEAD)@{${1-1}}; \\\n    fi\n}; f"
 [user]
 	name = Naoto Yoshimoto
-	email = naotone@floatingdots.com
-[gpg]
-	program = /usr/local/bin/krgpg
-[commit]
-	gpgSign = true
+	email = me@naotone.com
 [tag]
 	forceSignAnnotated = true
 [core]
 	editor = vim
 	ignorecase = false
 [ghq]
-	root = /Users/naotone/Code/00_Github
+	root = /Users/naotone/Code
 [filter "lfs"]
 	required = true
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
+[init]
+	defaultBranch = main
+[commit]
+	gpgsign = true
+[gpg]
+	program = /opt/homebrew/bin/gpg
+[gpg "ssh"]
+  program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+	allowedsignersfile = /Users/naotone/.config/git/allowed_signers
