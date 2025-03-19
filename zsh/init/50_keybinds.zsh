@@ -5,14 +5,9 @@
 bindkey -d
 bindkey -e
 
-# bindkey '^r' peco-select-history
 bindkey '^R' fzf-select-history
+bindkey '^U' fzf-combined-cdr-find
 
-bindkey '^U' fzf-cdr
-bindkey '^Y' fzf-go-to-dir
-
-# bindkey '^u' peco-go-to-dir
-# bindkey -s '^u' 'cd\n'
-# bindkey '^g^a' peco-select-gitadd
+# bindkey '^Y' fzf-go-to-dir
 
 # zplug load

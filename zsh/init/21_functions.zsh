@@ -1,19 +1,7 @@
-# cmd_history() {
-#     if has fzy; then
-#         local tac
-#         if which tac > /dev/null; then
-#             tac="tac"
-#         else
-#             tac="tail -r"
-#         fi
-#         BUFFER=$(fc -l -n 1 | eval $tac | fzy)
-#         CURSOR=${#BUFFER}
-#     fi
-# }
-# zle -N cmd_history
-
-
+SEARCH_BASE_DIRS=("$HOME" "/")
+EXCLUDE_DIRS=("node_modules" ".git" "cache" ".cache" "log" "logs" ".next")
 # gtac: brew install coreutils / brew install fzf
+
 function fzf-select-history() {
   local cmd
   cmd=$(awk '
@@ -26,7 +14,7 @@ function fzf-select-history() {
         print cmd "\t" firstLine;
         cmd = "";
         firstLine = "";
-      }
+     }
       firstLine = $0;
       cmd = substr($0, index($0, ";") + 1);
     }
@@ -43,7 +31,7 @@ function fzf-select-history() {
                    echo {1};
                    echo \"\";
                    echo -e \"\033[90mWrapped\033[0m\";
-                   echo {1} | sed 's/\\\\n/\n/g' | fold -s -w 120;
+                   echo {1} | sed 's/\\\\n/\n/g' | fold -s -w $COLUMNS;
                   #  echo \"\";
                   #  echo -e \"\033[Fist Line\033[0m\";
                   #  echo {2};
@@ -122,93 +110,144 @@ function fzf-select-history() {
 }
 zle -N fzf-select-history
 
-function fzf-cdr() {
-    local selected=$(cdr -l | awk '{print $2}' | fzf --reverse)
-    if [[ -n "$selected" ]]; then
-        BUFFER="cd ${(Q)selected}"
-        zle accept-line
-    fi
-    zle reset-prompt
-}
-zle -N fzf-cdr
+function incremental-find() {
+    local max_depth="$1"
 
-function fzf-go-to-dir() {
-    local dir
-    dir=$(
-        {
-        find "${HOME}" -mindepth 1 -maxdepth 5 -type d \( -name "node_modules" -o -name ".git" \) -prune -o -type d -print 2>/dev/null
-        find / -mindepth 1 -maxdepth 3 -type d \( -name "node_modules" -o -name ".git" \) -prune -o -type d -print 2>/dev/null
-        } | fzf --reverse
-    )
-    if [[ -n "$dir" ]]; then
-        dir="${(Q)dir}"
-        dir="${dir/#$HOME/~}"  # $HOME を ~ に変換
-        BUFFER="cd $dir"
-        zle accept-line
-    fi
+    for base_dir in "${SEARCH_BASE_DIRS[@]}"; do
+        if [[ -d "$base_dir" ]]; then
+            local prune_expr=()
+            for exclude in "${EXCLUDE_DIRS[@]}"; do
+                prune_expr+=(-name "$exclude" -o)
+            done
+            prune_expr=("${prune_expr[@]::-1}")
+            stdbuf -oL find "$base_dir" -mindepth 1 -maxdepth "$max_depth" -type d \
+                \( "${prune_expr[@]}" \) -prune -o -type d -print 2>/dev/null &
+        fi
+    done
+
+    wait # Wait for find processes to finish
 }
-zle -N fzf-go-to-dir
+
+function fzf-combined-cdr-find() {
+    local cdr_list find_list query=""
+    local max_depth=3
+    local max_limit=12
+
+    cdr_list=$(cdr -l | awk '{print $2}')
+
+    while (( max_depth <= max_limit )); do
+
+        selected=$( (echo "$cdr_list"; echo "Searching directories..."; incremental-find "$max_depth") | \
+            fzf --reverse --no-sort --query "$query" --print-query \
+                --header="Current Search Depth: $max_depth" \
+                --preview='echo "{}" | fold -s -w $COLUMNS' --preview-window=down:2 \
+                --bind 'esc:abort' )
+
+        if [[ $? -eq 130 ]]; then # Esc or Ctrl-C is pressed
+            return
+        fi
+
+        query=$(echo "$selected" | head -n 1)  # First line is the query
+        selected=$(echo "$selected" | tail -n +2)
+
+        if [[ -n "$selected" && "$selected" != "Searching directories..." ]]; then
+            BUFFER="cd ${(Q)selected}"
+            zle accept-line
+            return
+        fi
+
+
+        (( max_depth+=3 ))
+    done
+}
+zle -N fzf-combined-cdr-find
+
+# function fzf-cdr() {
+#     local selected=$(cdr -l | awk '{print $2}' | fzf --reverse)
+#     if [[ -n "$selected" ]]; then
+#         BUFFER="cd ${(Q)selected}"
+#         zle accept-line
+#     fi
+#     zle reset-prompt
+# }
+# zle -N fzf-cdr
+# function fzf-go-to-dir() {
+#     local dir
+#     dir=$(
+#         {
+#         find "${HOME}" -mindepth 1 -maxdepth 5 -type d \( -name "node_modules" -o -name ".git" \) -prune -o -type d -print 2>/dev/null
+#         find / -mindepth 1 -maxdepth 3 -type d \( -name "node_modules" -o -name ".git" \) -prune -o -type d -print 2>/dev/null
+#         } | fzf --reverse
+#     )
+#     if [[ -n "$dir" ]]; then
+#         dir="${(Q)dir}"
+#         dir="${dir/#$HOME/~}"
+#         BUFFER="cd $dir"
+#         zle accept-line
+#     fi
+# }
+# zle -N fzf-go-to-dir
 
 #Peco
-function peco-select-history() {
-    local tac
-    if which tac > /dev/null; then
-        tac="tac"
-    else
-        tac="tail -r"
-    fi
-    BUFFER=$(history -n 1 | \
-        eval $tac | \
-        peco --query "$LBUFFER")
-    CURSOR=$#BUFFER
-    zle clear-screen
-}
+# function peco-select-history() {
+#     local tac
+#     if which tac > /dev/null; then
+#         tac="tac"
+#     else
+#         tac="tail -r"
+#     fi
+#     BUFFER=$(history -n 1 | \
+#         eval $tac | \
+#         peco --query "$LBUFFER")
+#     CURSOR=$#BUFFER
+#     zle clear-screen
+# }
 
-if (( ${+commands[peco]} )); then
-  peco-go-to-dir () {
-    local line
-    local selected="$(
-      {
-        (
-          autoload -Uz chpwd_recent_filehandler
-          chpwd_recent_filehandler && for line in $reply; do
-            if [[ -d "$line" ]]; then
-              echo "$line"
-            fi
-          done
-        )
-        ghq list --full-path
-        for line in *(-/) ${^cdpath}/*(N-/); do echo "$line"; done | sort -u
-      } | peco --query "$LBUFFER"
-    )"
-    if [ -n "$selected" ]; then
-      BUFFER="cd ${(q)selected}"
-      zle accept-line
-    fi
-    zle clear-screen
-  }
-fi
+# if (( ${+commands[peco]} )); then
+#   peco-go-to-dir () {
+#     local line
+#     local selected="$(
+#       {
+#         (
+#           autoload -Uz chpwd_recent_filehandler
+#           chpwd_recent_filehandler && for line in $reply; do
+#             if [[ -d "$line" ]]; then
+#               echo "$line"
+#             fi
+#           done
+#         )
+#         ghq list --full-path
+#         for line in *(-/) ${^cdpath}/*(N-/); do echo "$line"; done | sort -u
+#       } | peco --query "$LBUFFER"
+#     )"
+#     if [ -n "$selected" ]; then
+#       BUFFER="cd ${(q)selected}"
+#       zle accept-line
+#     fi
+#     zle clear-screen
+#   }
+# fi
 
-function peco-cdr () {
-    local selected_dir="$(cdr -l | awk '{ print $2 }' | peco)"
-    if [ -n "$selected_dir" ]; then
-        BUFFER="cd ${(q)selected_dir}"
-        zle accept-line
-    fi
-    zle clear-screen
-}
+# function peco-cdr () {
+#     local selected_dir="$(cdr -l | awk '{ print $2 }' | peco)"
+#     if [ -n "$selected_dir" ]; then
+#         BUFFER="cd ${(q)selected_dir}"
+#         zle accept-line
+#     fi
+#     zle clear-screen
+# }
 
-function peco-select-gitadd() {
-    local SELECTED_FILE_TO_ADD="$(git status --porcelain | \
-                                  peco --query "$LBUFFER" | \
-                                  awk -F ' ' '{print $NF}')"
-    if [ -n "$SELECTED_FILE_TO_ADD" ]; then
-      BUFFER="git add $(echo "$SELECTED_FILE_TO_ADD" | tr '\n' ' ')"
-      CURSOR=$#BUFFER
-    fi
-    zle accept-line
-    # zle clear-screen
-}
+# function peco-select-gitadd() {
+#     local SELECTED_FILE_TO_ADD="$(git status --porcelain | \
+#                                   peco --query "$LBUFFER" | \
+#                                   awk -F ' ' '{print $NF}')"
+#     if [ -n "$SELECTED_FILE_TO_ADD" ]; then
+#       BUFFER="git add $(echo "$SELECTED_FILE_TO_ADD" | tr '\n' ' ')"
+#       CURSOR=$#BUFFER
+#     fi
+#     zle accept-line
+#     # zle clear-screen
+# }
 
 # Usage: cpdf $1[output file] $2[dpi] $3[Gray|CMYK|RGB*] $4[screen|ebook|printer*|prepress|default] $5[Transparency] $6[input file]
 # function cpdf() {
