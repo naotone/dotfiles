@@ -1,109 +1,121 @@
-SEARCH_BASE_DIRS=("$HOME" "/")
+SEARCH_BASE_DIRS=("$HOME" "/" "$HOME/Code")
 EXCLUDE_DIRS=("node_modules" ".git" "cache" ".cache" "log" "logs" ".next")
 # gtac: brew install coreutils / brew install fzf
 
 function fzf-select-history() {
-  local cmd
-  cmd=$(
-    awk '
-    BEGIN { cmd = ""; firstLine = ""; }
+  local selected
+  local entry_id
+  
+  # Create temporary file for history processing
+  local tmpfile="/tmp/zsh_history_processed.$$"
+  
+  # Process history file to create numbered entries
+  # Each entry gets a unique ID based on line numbers
+  awk '
+    BEGIN { 
+      entry_num = 0
+      cmd = ""
+      start_line = 0
+      in_entry = 0
+    }
     /^: [0-9]{10,}:[01];/ {
-      if (cmd != "") {
-        if (firstLine == "") {
-          firstLine = $0;
-        }
-        print cmd "\t" firstLine;
-        cmd = "";
-        firstLine = "";
-     }
-      firstLine = $0;
-      cmd = substr($0, index($0, ";") + 1);
+      if (in_entry && cmd != "") {
+        # Output previous entry
+        gsub(/\\/, "\\\\", cmd)  # Escape backslashes
+        gsub(/\t/, "\\t", cmd)   # Escape tabs
+        print entry_num "\t" start_line "\t" NR-1 "\t" cmd
+      }
+      # Start new entry
+      entry_num++
+      start_line = NR
+      cmd = substr($0, index($0, ";") + 1)
+      in_entry = 1
     }
     !/^: [0-9]{10,}:[01];/ {
-      cmd = cmd "\\n" $0;
+      if (in_entry) {
+        cmd = cmd "\n" $0
+      }
     }
     END {
-      if (cmd != "") print cmd "\t" firstLine;
+      if (in_entry && cmd != "") {
+        gsub(/\\/, "\\\\", cmd)
+        gsub(/\t/, "\\t", cmd)
+        print entry_num "\t" start_line "\t" NR "\t" cmd
+      }
     }
-  ' "$HISTFILE" |
-      tac | awk -F"\t" '!seen[$1]++ && $2 != "" {print $0}' |
-      fzf --query "$LBUFFER" --reverse --multi --delimiter="\t" --with-nth=1 \
-        --preview "echo -e \"\033[90mCommand\033[0m\";
-                   echo {1};
-                   echo \"\";
-                   echo -e \"\033[90mWrapped\033[0m\";
-                   echo {1} | sed 's/\\\\n/\n/g' | fold -s -w $COLUMNS;
-                  #  echo \"\";
-                  #  echo -e \"\033[Fist Line\033[0m\";
-                  #  echo {2};
-                   " \
-        --bind "ctrl-x:execute(
-            # Debug info
-            # echo \"=== Deleting entry ===\" > /tmp/fzf_history_debug.log
-            # echo \"Command: {1}\" >> /tmp/fzf_history_debug.log
-            # echo \"First Line: {2}\" >> /tmp/fzf_history_debug.log
-            # echo \"=== Before deletion ===\" >> /tmp/fzf_history_debug.log
-            # head -n 10 \"$HISTFILE\" >> /tmp/fzf_history_debug.log
-
-            timestamp=$(date +%Y%m%d%H%M%S)
-            tmpfile=\"/tmp/zsh_history.\$timestamp.tmp\"
-
-            (awk -v target="{2}" '
-              BEGIN {
-                # print \"Target for deletion:  \"target >> \"/tmp/fzf_history_debug.log\"
-                skip = 0;
+  ' "$HISTFILE" > "$tmpfile"
+  
+  # Use fzf to select history
+  selected=$(
+    tac "$tmpfile" | 
+    awk -F'\t' '!seen[$4]++ {print $1 "\t" $4}' |
+    fzf --query "$LBUFFER" \
+        --reverse \
+        --multi \
+        --delimiter='\t' \
+        --with-nth=2 \
+        --preview 'echo -e "\033[90mCommand\033[0m";
+                   echo {2} | sed "s/\\\\n/\n/g";
+                   echo "";
+                   echo -e "\033[90mWrapped\033[0m";
+                   echo {2} | sed "s/\\\\n/\n/g" | fold -s -w $COLUMNS' \
+        --bind "ctrl-x:execute-silent(
+            entry_id={1}
+            # Find the line range for this entry
+            line_info=\$(awk -F'\t' -v id=\"\$entry_id\" '\$1 == id {print \$2 \"\t\" \$3; exit}' \"$tmpfile\")
+            start_line=\$(echo \"\$line_info\" | cut -f1)
+            end_line=\$(echo \"\$line_info\" | cut -f2)
+            
+            # Delete the entry from history
+            if [[ -n \"\$start_line\" && -n \"\$end_line\" ]]; then
+              sed -i.bak \"\${start_line},\${end_line}d\" \"$HISTFILE\"
+            fi
+        )+reload(
+            # Reprocess history file
+            awk '
+              BEGIN { 
+                entry_num = 0
+                cmd = \"\"
+                start_line = 0
+                in_entry = 0
               }
               /^: [0-9]{10,}:[01];/ {
-                # print \"First Line: \"\$0 >> \"/tmp/fzf_history_debug.log\"
-                # if (index(\$0, target) != 0) {
-                if (\$0 == target){
-                  # print \"Unmatched for deletion: \" \$0 >> \"/tmp/fzf_history_debug.log\"
-                  skip = 1;
-                } else {
-                  # print \"Matched for deletion: \" \$0 >> \"/tmp/fzf_history_debug.log\"
-                  skip = 0;
-                  print;
+                if (in_entry && cmd != \"\") {
+                  gsub(/\\\\/, \"\\\\\\\\\", cmd)
+                  gsub(/\t/, \"\\\\t\", cmd)
+                  print entry_num \"\t\" start_line \"\t\" NR-1 \"\t\" cmd
                 }
+                entry_num++
+                start_line = NR
+                cmd = substr(\$0, index(\$0, \";\") + 1)
+                in_entry = 1
               }
               !/^: [0-9]{10,}:[01];/ {
-                # print \"Deleting line: \"\$0 >> \"/tmp/fzf_history_debug.log\"
-                if (!skip) print;
+                if (in_entry) {
+                  cmd = cmd \"\\n\" \$0
+                }
               }
-            ' $HISTFILE > \$tmpfile && cp \$tmpfile $HISTFILE)
-
-            # echo \"=== After deletion ===\" >> /tmp/fzf_history_debug.log
-            # head -n 10 \"$HISTFILE\" >> /tmp/fzf_history_debug.log
-
-        )+reload(awk '
-          BEGIN { cmd = \"\"; firstLine = \"\"; }
-          /^: [0-9]+:[0-9]+;/ {
-            if (cmd != \"\") {
-              if (firstLine == \"\") {
-                firstLine = \$0;
+              END {
+                if (in_entry && cmd != \"\") {
+                  gsub(/\\\\/, \"\\\\\\\\\", cmd)
+                  gsub(/\t/, \"\\\\t\", cmd)
+                  print entry_num \"\t\" start_line \"\t\" NR \"\t\" cmd
+                }
               }
-              print cmd \"\\t\" firstLine;
-              cmd = \"\";
-              firstLine = \"\";
-            }
-            firstLine = \$0;
-            cmd = substr(\$0, index(\$0, \";\") + 1);
-          }
-          !/^: [0-9]+:[0-9]+;/ {
-            cmd = cmd \"\\\\n\" \$0;
-            firstLine = firstLine \"\\n\" \$0;
-          }
-          END {
-            if (cmd != \"\") print cmd \"\\t\" firstLine;
-          }
-
-        ' $HISTFILE | tac | awk -F\"\\t\" \"!seen[\\\$1]++ && \\\$2 != \\\"\\\" {print \\\$0}\")" \
-        --bind "ctrl-q:execute(
-            echo {1} | sed 's/\\\\n/\\n/g' | pbcopy
+            ' \"$HISTFILE\" > \"$tmpfile\"
+            tac \"$tmpfile\" | awk -F'\t' '!seen[\$4]++ {print \$1 \"\t\" \$4}'
+        )" \
+        --bind "ctrl-q:execute-silent(
+            echo {2} | sed 's/\\\\n/\n/g' | pbcopy
         )"
   )
-  if [[ -n "$cmd" ]]; then
-    # Extract just the command part (before the tab)
-    cmd=$(echo "$cmd" | cut -f1 | sed 's/\\n/\n/g')
+  
+  # Clean up
+  rm -f "$tmpfile"
+  
+  if [[ -n "$selected" ]]; then
+    # Extract command and unescape
+    local cmd=$(echo "$selected" | cut -f2 | sed 's/\\n/\n/g; s/\\t/\t/g; s/\\\\/\\/g')
     BUFFER="$cmd"
     CURSOR=$#BUFFER
     zle accept-line
