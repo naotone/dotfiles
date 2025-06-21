@@ -72,7 +72,20 @@ setopt hist_reduce_blanks
 setopt share_history
 
 zshaddhistory() {
-    whence ${${(z)1}[1]} >| /dev/null || return 1
+    local cmd="${1}"
+
+    cmd="${cmd%$'\n'}"
+
+    local first_word="${cmd%% *}"
+    whence "$first_word" >|/dev/null || return 1
+
+    cmd="${cmd//\\$'\n'/ }"
+    cmd="${cmd//  / }"
+    cmd="${cmd%% }"
+    cmd="${cmd%%\\}"
+
+    print -sr -- "$cmd"
+    return 1
 }
 
 # # --------------------------------------------------------------------

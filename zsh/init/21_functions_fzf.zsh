@@ -5,14 +5,14 @@ EXCLUDE_DIRS=("node_modules" ".git" "cache" ".cache" "log" "logs" ".next")
 function fzf-select-history() {
   local selected
   local entry_id
-  
+
   # Create temporary file for history processing
   local tmpfile="/tmp/zsh_history_processed.$$"
-  
+
   # Process history file to create numbered entries
   # Each entry gets a unique ID based on line numbers
   awk '
-    BEGIN { 
+    BEGIN {
       entry_num = 0
       cmd = ""
       start_line = 0
@@ -43,13 +43,13 @@ function fzf-select-history() {
         print entry_num "\t" start_line "\t" NR "\t" cmd
       }
     }
-  ' "$HISTFILE" > "$tmpfile"
-  
+  ' "$HISTFILE" >"$tmpfile"
+
   # Use fzf to select history
   selected=$(
-    tac "$tmpfile" | 
-    awk -F'\t' '!seen[$4]++ {print $1 "\t" $4}' |
-    fzf --query "$LBUFFER" \
+    tac "$tmpfile" |
+      awk -F'\t' '!seen[$4]++ {print $1 "\t" $4}' |
+      fzf --query "$LBUFFER" \
         --reverse \
         --multi \
         --delimiter='\t' \
@@ -65,7 +65,7 @@ function fzf-select-history() {
             line_info=\$(awk -F'\t' -v id=\"\$entry_id\" '\$1 == id {print \$2 \"\t\" \$3; exit}' \"$tmpfile\")
             start_line=\$(echo \"\$line_info\" | cut -f1)
             end_line=\$(echo \"\$line_info\" | cut -f2)
-            
+
             # Delete the entry from history
             if [[ -n \"\$start_line\" && -n \"\$end_line\" ]]; then
               sed -i.bak \"\${start_line},\${end_line}d\" \"$HISTFILE\"
@@ -73,7 +73,7 @@ function fzf-select-history() {
         )+reload(
             # Reprocess history file
             awk '
-              BEGIN { 
+              BEGIN {
                 entry_num = 0
                 cmd = \"\"
                 start_line = 0
@@ -109,10 +109,10 @@ function fzf-select-history() {
             echo {2} | sed 's/\\\\n/\n/g' | pbcopy
         )"
   )
-  
+
   # Clean up
   rm -f "$tmpfile"
-  
+
   if [[ -n "$selected" ]]; then
     # Extract command and unescape
     local cmd=$(echo "$selected" | cut -f2 | sed 's/\\n/\n/g; s/\\t/\t/g; s/\\\\/\\/g')

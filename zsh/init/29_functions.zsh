@@ -1,3 +1,7 @@
+function gcauto() {
+  git commit -m "$(claude -p "Look at the staged git changes and create a summarizing git commit title. Only respond with the title and no affirmation.")"
+}
+
 function cpdf() {
    \gs -sOutputFile=${1:-"output.min.pdf"} -sDEVICE=pdfwrite \
       -dNOPAUSE -dBATCH -dSAFER -dNOCACHE -dHaveTransparency=${5:-false} \

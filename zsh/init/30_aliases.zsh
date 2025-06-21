@@ -7,6 +7,8 @@ if has 'exa'; then
     alias lat='la -T'
 fi
 
+alias yolo="claude --dangerously-skip-permissions"
+
 alias q='exit'
 alias crontab='crontab -i'
 
@@ -102,4 +104,3 @@ fi
 if [[ -e ${HOME}/.local_aliases ]]; then
     source ${HOME}/.local_aliases
 fi
-
