@@ -14,24 +14,26 @@ function fzf-select-history() {
     /^: [0-9]{10,}:[01];/ {
       entry_num++
       cmd = substr($0, index($0, ";") + 1)
-      print entry_num "\t" NR "\t" cmd
+      display_cmd = cmd
+      gsub(/__NEWLINE__/, " <NL> ", display_cmd)
+      print entry_num "\t" NR "\t" cmd "\t" display_cmd
     }
-  ' "$HISTFILE" >"$tmpfile"
+  ' "$HISTFILE" > "$tmpfile"
 
   # Use fzf to select history
   selected=$(
     tac "$tmpfile" |
-      awk -F'\t' '!seen[$3]++ {print $1 "\t" $3}' |
+      awk -F'\t' '!seen[$3]++ {print $1 "\t" $3 "\t" $4}' |
       fzf --query "$LBUFFER" \
         --reverse \
         --multi \
         --delimiter='\t' \
-        --with-nth=2 \
+        --with-nth=3 \
         --preview 'echo -e "\033[90mCommand\033[0m";
-                   echo {2} | sed "s/__RETURN__/\n/g";
+                   echo {2} | sed "s/__NEWLINE__/\n/g";
                    echo "";
                    echo -e "\033[90mWrapped\033[0m";
-                   echo {2} | sed "s/__RETURN__/\n/g" | fold -s -w $COLUMNS' \
+                   echo {2} | sed "s/__NEWLINE__/\n/g" | fold -s -w $COLUMNS' \
         --bind "ctrl-x:execute-silent(
             entry_id={1}
             line_num=\$(awk -F'\t' -v id=\"\$entry_id\" '\$1 == id {print \$2; exit}' \"$tmpfile\")
@@ -49,7 +51,7 @@ function fzf-select-history() {
             tac \"$tmpfile\" | awk -F'\t' '!seen[\$3]++ {print \$1 \"\t\" \$3}'
         )" \
         --bind "ctrl-q:execute-silent(
-            echo {2} | sed 's/__RETURN__/\n/g' | pbcopy
+            echo {2} | sed 's/__NEWLINE__/\n/g' | pbcopy
         )"
   )
 
@@ -57,10 +59,11 @@ function fzf-select-history() {
   rm -f "$tmpfile"
 
   if [[ -n "$selected" ]]; then
-    # Extract command and convert __RETURN__ back to newlines
-    local cmd=$(echo "$selected" | cut -f2 | sed 's/__RETURN__/\n/g')
+    # Extract original command and convert __RETURN__ back to newlines
+    local cmd=$(echo "$selected" | cut -f2 | sed 's/__NEWLINE__/\n/g')
     BUFFER="$cmd"
     CURSOR=$#BUFFER
+    # zle accept-line
   fi
 }
 zle -N fzf-select-history

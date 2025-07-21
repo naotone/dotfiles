@@ -55,8 +55,8 @@ zshaddhistory() {
     local first_word="${cmd%% *}"
     whence "$first_word" >|/dev/null || return 1
     cmd="${cmd//$'\t'/' '}"
-    cmd="${cmd//$'\n'/__RETURN__}"
-    cmd="${cmd%$'__RETURN__'}"
+    cmd="${cmd//$'\n'/__NEWLINE__}"
+    cmd="${cmd%$'__NEWLINE__'}"
 
     print -sr -- "$cmd"
     return 1
