@@ -45,10 +45,12 @@ function fzf-select-history() {
               /^: [0-9]{10,}:[01];/ {
                 entry_num++
                 cmd = substr(\$0, index(\$0, \";\") + 1)
-                print entry_num \"\t\" NR \"\t\" cmd
+                display_cmd = cmd
+                gsub(/__NEWLINE__/, \" <NL> \", display_cmd)
+                print entry_num \"\t\" NR \"\t\" cmd \"\t\" display_cmd
               }
             ' \"$HISTFILE\" > \"$tmpfile\"
-            tac \"$tmpfile\" | awk -F'\t' '!seen[\$3]++ {print \$1 \"\t\" \$3}'
+            tac \"$tmpfile\" | awk -F'\t' '!seen[\$3]++ {print \$1 \"\t\" \$3 \"\t\" \$4}'
         )" \
         --bind "ctrl-q:execute-silent(
             echo {2} | sed 's/__NEWLINE__/\n/g' | pbcopy

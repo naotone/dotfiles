@@ -2,6 +2,7 @@
 autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
 add-zsh-hook chpwd chpwd_recent_dirs
 
+
 #cdr
 zstyle ':completion:*' recent-dirs-insert both
 zstyle ':chpwd:*' recent-dirs-max 500
@@ -21,14 +22,13 @@ setopt share_history
 zshaddhistory() {
     local cmd="${1}"
 
-   # Skip git commit -m commands (preserve multiline commit messages)
-    if [[ "$cmd" =~ ^git[[:space:]]+commit[[:space:]]+-m ]]; then
+    # Skip rm commands with f option (force delete)
+    if [[ "$cmd" =~ ^rm[[:space:]]+.*-f ]]; then
         return 1
     fi
 
-    # Skip commands containing sensitive information
-    # Skip commands with pk_ or sk_ prefixed environment variables/keys
-    if [[ "$cmd" =~ (pk_|sk_)[A-Za-z0-9_]+ ]]; then
+   # Skip git commit -m commands (preserve multiline commit messages)
+    if [[ "$cmd" =~ ^git[[:space:]]+commit[[:space:]]+-m ]]; then
         return 1
     fi
 
@@ -53,10 +53,24 @@ zshaddhistory() {
     fi
 
     local first_word="${cmd%% *}"
-    whence "$first_word" >|/dev/null || return 1
-    cmd="${cmd//$'\t'/' '}"
+
+    # Skip empty commands or commands with only whitespace
+    if [[ -z "${first_word// }" ]]; then
+        return 1
+    fi
+
+    # Check if command exists (builtin, function, or executable)
+    if ! command -v "$first_word" >/dev/null 2>&1; then
+        return 1
+    fi
+
+    cmd="${cmd//$'\t'/'  '}"
     cmd="${cmd//$'\n'/__NEWLINE__}"
     cmd="${cmd%$'__NEWLINE__'}"
+
+    if tail -n 100 "$HISTFILE" 2>/dev/null | sed -n 's/^: [0-9]*:[0-9]*;//p' | grep -Fxq "$cmd"; then
+      return 1
+    fi
 
     print -sr -- "$cmd"
     return 1
