@@ -25,6 +25,7 @@ function fzf-select-history() {
     tac "$tmpfile" |
       awk -F'\t' '!seen[$3]++ {print $1 "\t" $3 "\t" $4}' |
       fzf --query "$LBUFFER" \
+        --tiebreak=index \
         --reverse \
         --multi \
         --delimiter='\t' \
