@@ -2,14 +2,12 @@
 autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
 add-zsh-hook chpwd chpwd_recent_dirs
 
-
 #cdr
 zstyle ':completion:*' recent-dirs-insert both
 zstyle ':chpwd:*' recent-dirs-max 500
 zstyle ':chpwd:*' recent-dirs-default true
 zstyle ':chpwd:*' recent-dirs-file "$HOME/.cache/shell/chpwd-recent-dirs"
 zstyle ':chpwd:*' recent-dirs-pushd true
-
 
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
@@ -52,8 +50,6 @@ zshaddhistory() {
         return 1
     fi
 
-    local first_word="${cmd%% *}"
-
     # Skip empty commands or commands with only whitespace
     if [[ -z "${first_word// }" ]]; then
         return 1
@@ -64,7 +60,7 @@ zshaddhistory() {
         return 1
     fi
 
-    cmd="${cmd//$'\t'/'  '}"
+    cmd="${cmd//$'\t'/' '}"
     cmd="${cmd//$'\n'/__NEWLINE__}"
     cmd="${cmd%$'__NEWLINE__'}"
 
@@ -76,3 +72,11 @@ zshaddhistory() {
     return 1
 }
 
+
+export FZF_DEFAULT_OPTS="
+  --bind ctrl-k:kill-line
+  --height=90%
+  --border=none
+  --margin=0
+  --preview-window=down:30%
+"

@@ -30,7 +30,7 @@ function fzf-select-history() {
         --multi \
         --delimiter='\t' \
         --with-nth=3 \
-        --preview 'echo -e "\033[90mCommand\033[0m";
+        --preview 'echo -e "\033[90mOriginal\033[0m";
                    echo {2} | sed "s/__NEWLINE__/\n/g";
                    echo "";
                    echo -e "\033[90mWrapped\033[0m";
@@ -62,7 +62,7 @@ function fzf-select-history() {
   rm -f "$tmpfile"
 
   if [[ -n "$selected" ]]; then
-    # Extract original command and convert __RETURN__ back to newlines
+    # Extract original command and convert __NEWLINE__ back to newlines
     local cmd=$(echo "$selected" | cut -f2 | sed 's/__NEWLINE__/\n/g')
     BUFFER="$cmd"
     CURSOR=$#BUFFER
@@ -123,7 +123,9 @@ function fzf-combined-cdr-find() {
   }'
 
   selected=$(
-    fzf --print-query --no-sort --reverse \
+    fzf --print-query \
+      --reverse \
+      --tiebreak=index \
       --bind "start:reload($FIND_PREFIX; find_cmd)+unbind(ctrl-b)" \
       --bind "change:reload:sleep 0.1; $FIND_PREFIX; find_cmd || true" \
       --bind 'left:execute-silent(
