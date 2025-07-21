@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "defaultModel": "acceptEddits",
+    "preferredNotifChannel": "terminal_bell",
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(diff:*)",
+      "Bash(grep:*)",
+      "Bash(cp:*)",
+      "Bash(pnpm:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(npm:*)",
+      "Bash(rm:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(chgrp:*)"
+    ]
+  }
+}

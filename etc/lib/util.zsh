@@ -13,18 +13,14 @@ has()
     is_exists "$@"
 }
 
-# ostype returns the lowercase OS name
 ostype() {
-    # shellcheck disable=SC2119
     uname | lower
 }
 
 processortype() {
-    # shellcheck disable=SC2119
     uname -m | lower
 }
 
-# os_detect export the PLATFORM variable as you see fit
 os_detect() {
     export PLATFORM
     case "$(ostype)" in
@@ -59,7 +55,6 @@ distribution_detect() {
 
 }
 
-# is_macos returns true if running OS is Macintosh
 is_macos() {
     os_detect
     if [ "$PLATFORM" = "macos" ]; then
@@ -82,7 +77,6 @@ is_appleSilicon(){
     fi
 }
 
-# is_linux returns true if running OS is GNU/Linux
 is_linux() {
     os_detect
     if [ "$PLATFORM" = "linux" ]; then
@@ -92,7 +86,6 @@ is_linux() {
     fi
 }
 
-# is_bsd returns true if running OS is FreeBSD
 is_bsd() {
     os_detect
     if [ "$PLATFORM" = "bsd" ]; then
@@ -102,7 +95,6 @@ is_bsd() {
     fi
 }
 
-# is_cygwin returns true if running OS is cygwin
 is_cygwin() {
     os_detect
     if [ "$PLATFORM" = "cygwin" ]; then
@@ -130,7 +122,6 @@ is_centos() {
     fi
 }
 
-# get_os returns OS name of the platform that is running
 get_os() {
     local os
     for os in macos linux bsd cygwin; do
@@ -140,17 +131,14 @@ get_os() {
     done
 }
 
-# is_screen_running returns true if GNU screen is running
 is_screen_running() {
     [ ! -z "$STY" ]
 }
 
-# is_tmux_runnning returns true if tmux is running
 is_tmux_running() {
     [ ! -z "$TMUX" ]
 }
 
-# is_screen_or_tmux_running returns true if GNU screen or tmux is running
 is_screen_or_tmux_running() {
     is_screen_running || is_tmux_running
 }
@@ -159,7 +147,6 @@ shell_has_started_interactively() {
     [ ! -z "$PS1" ]
 }
 
-# is_ssh_running returns true if the ssh deamon is available
 is_ssh_running() {
     [ ! -z "$SSH_CLIENT" ]
 }

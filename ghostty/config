@@ -1,0 +1,95 @@
+# This is the configuration file for Ghostty.
+#
+# This template file has been automatically created at the following
+# path since Ghostty couldn't find any existing config files on your system:
+#
+#   /Users/naotone/Library/Application Support/com.mitchellh.ghostty/config
+#
+# The template does not set any default options, since Ghostty ships
+# with sensible defaults for all options. Users should only need to set
+# options that they want to change from the default.
+#
+# Run `ghostty +show-config --default --docs` to view a list of
+# all available config options and their default values.
+#
+# Additionally, each config option is also explained in detail
+# on Ghostty's website, at https://ghostty.org/docs/config.
+
+# Config syntax crash course
+# ==========================
+# # The config file consists of simple key-value pairs,
+# # separated by equals signs.
+# font-family = Iosevka
+# window-padding-x = 2
+#
+# # Spacing around the equals sign does not matter.
+# # All of these are identical:
+# key=value
+# key= value
+# key =value
+# key = value
+#
+# # Any line beginning with a # is a comment. It's not possible to put
+# # a comment after a config option, since it would be interpreted as a
+# # part of the value. For example, this will have a value of "#123abc":
+# background = #123abc
+#
+# # Empty values are used to reset config keys to default.
+# key =
+#
+# # Some config options have unique syntaxes for their value,
+# # which is explained in the docs for that config option.
+# # Just for example:
+# resize-overlay-duration = 4s 200ms
+
+confirm-close-surface = false
+
+font-family = "Operator Mono, SF Mono"
+font-size = "13"
+font-feature = -dlig
+
+cursor-style = underline
+cursor-style-blink = true
+
+background-opacity = 0.97
+background-blur = 2
+
+background = #1A1B1E
+foreground = #DBDBDB
+cursor-color = #FAFAFA
+palette = 0=#1A1C1F
+palette = 1=#FF5A5F
+palette = 2=#A9DEAC
+palette = 3=#F5D062
+palette = 4=#43C0D6
+palette = 5=#E03D76
+#palette = 6=#81c8be
+#palette = 7=#F00F0
+
+
+#1A1C1F 0
+#FF5A5F 1
+#A9DEAC 2
+#F5D062 3
+#43C0D6 4
+#E03D76 5
+#A575E0 6 #81c8be
+#F0F0F0 7
+
+
+#Default Palette
+#51576d 0
+#e78284 1
+#a6d189 2
+#e5c890 3
+#8caaee 4
+#81c8be 6
+#a5adce 7
+#626880 8
+#e67172 9
+#8ec772 10
+#d9ba73 11
+#7b9ef0 12
+#f2a4db 13
+#5abfb5 14
+#b5bfe2 15

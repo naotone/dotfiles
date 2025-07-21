@@ -6,16 +6,6 @@ DOTFILES   := $(filter-out $(EXCLUSIONS), $(CANDIDATES))
 deploy:
 	@DOTPATH=$(DOTPATH) bash $(DOTPATH)/etc/init/deploy.sh
 
-init:
-	@DOTPATH=$(DOTPATH) bash $(DOTPATH)/etc/init/init.sh
-
-update:
-	git pull origin master
-
-install: deploy init
-	@exec $$SHELL
-
 clean:
 	@echo "Remove dotfiles in your home directory..."
 	@DOTPATH=$(DOTPATH) bash $(DOTPATH)/etc/init/clean.sh
-

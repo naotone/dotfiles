@@ -3,7 +3,7 @@
 . "$DOTPATH"/etc/lib/util.zsh
 
 inclusion_dirs=(bin)
-rc_files=(.vimrc .zshrc .zshenv .gitconfig)
+rc_files=(.vimrc .zshrc .zshenv .gitconfig .hammerspoon)
 config_dirs=(vim zsh)
 
 log_info "Clean symbolic links"

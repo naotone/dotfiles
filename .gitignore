@@ -1,5 +1,4 @@
 /.zplug/
 /tmp/
-
-.netrwhist
 .DS_Store
+test_*.sh

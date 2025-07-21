@@ -10,26 +10,6 @@ if [[ "$TERM" != "screen-256color" ]]; then
   export TERM="xterm-256color"
 fi
 
-if is_macos; then
-  export PATH="/usr/local/opt/curl/bin:$PATH"
-  export PATH=$PATH:/usr/local/bin:/bin
-  if is_appleSilicon; then
-    # brew
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-    # yarn
-    # export PATH="$PATH:$(yarn global bin)"
-    # puppeteer
-    export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-    export PUPPETEER_EXECUTABLE_PATH=$(which chromium)
-  else
-    # cuda
-    # export PATH=/Developer/NVIDIA/CUDA-7.0/bin:$PATH
-    # export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-7.0/lib:$DYLD_LIBRARY_PATH
-  fi
-fi
-
-#libarchive
-export PKG_CONFIG_PATH="/opt/homebrew/opt/libarchive/lib/pkgconfig"
 
 #nvm
 export NVM_DIR="$HOME/.config/nvm"
@@ -98,3 +78,15 @@ fi
 if [[ -e ${HOME}/.cargo/env ]]; then
   source ${HOME}/.cargo/env
 fi
+
+[[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
+
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/naotone/.lmstudio/bin"
+
+# Added by Windsurf
+export PATH="/Users/naotone/.codeium/windsurf/bin:$PATH"
+
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+export PATH="/opt/homebrew/opt/curl/bin:$PATH"

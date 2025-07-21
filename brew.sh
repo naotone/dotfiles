@@ -1,89 +1,56 @@
 brew=(
+  tmux
   reattach-to-user-namespace
   fabianishere/personal/pam_reattach
-  # kryptco/tap/kr Cannot install with brew. curl https://krypt.co/kr | sed "s/11.0/12.0/g" | sh
-  nvm
-  curl
-  # docker
-  ffmpeg
-  git
-  jq
-  rbenv
-  pyenv
-  the_silver_searcher
-  wget
-  yarn
-  youtube-dl
-)
-
-cask=(
-  1password
-  alfred
-  # bettertouchtool
-  choosy
-  divvy
-  bartender
-  figma
+  coreutils
+  fzf
+  ghostty
   hammerspoon
-  visual-studio-code
-  notion
-  slack
-)
-
-cask2=(
-  adobe-creative-cloud
-  airtable
-  cleanshot
-  coderunner
+  raycast
+  1password
   contexts
-  dash
-  deepl
-  dropbox
-  expressvpn
-  grammarly
-  gray
-  iconjar
-  numi
-  paw
-  rightfont
-  sip
-  sketch
-  spotify
-  # sequel-pro
-  the-clock
-  tower
+  keyboardcleantool
+  font-sf-pro
+  font-sf-mono
+  tailscale-app
+  rapidapi
+  nordvpn
+  ngrok
+  tripmode
+  cursor
+  visual-studio-code
+  appcleaner
+  adobe-creative-cloud
+  slack
+  notion
+  discord
+  figma
 )
 
 browsers=(
-  firefox
-  firefox-developer-edition
   google-chrome
-  google-chrome-canary
-  opera
+  google-chrome@canary
   safari-technology-preview
+  firefox
+  firefox@developer-edition
   brave-browser
+  opera
   microsoft-edge
   tor-browser
 )
 
-#xcode-select --install
-#sudo xcodebuild -license
+xcode-select --install
+sudo xcodebuild -license
 
-# echo "Installing homebrew..."
-# /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-# brew update
-# brew upgrade
+echo "Installing homebrew..."
+if ! command -v brew &> /dev/null; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+brew update
+brew upgrade
 
-#echo "installing packages..."
-#brew install ${brew[@]}
-
-#echo "installing primary apps..."
-#brew tap homebrew/cask-versions
-#brew install --cask ${cask[@]}
-#brew link alfred
-#
-#echo "installing apps..."
-#brew install --cask ${cask2[@]}
+echo "installing packages..."
+brew install ${brew[@]}
 
 echo "installing browsers..."
 brew install --cask ${browsers[@]}

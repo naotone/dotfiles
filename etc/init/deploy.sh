@@ -3,8 +3,8 @@
 . "$DOTPATH"/etc/lib/util.zsh
 
 inclusion_dirs=(bin)
-rc_files=(.vimrc .zshrc .zshenv .gitconfig)
-config_dirs=(vim zsh)
+rc_files=(.vimrc .zshrc .zshenv .gitconfig .hammerspoon)
+config_dirs=(vim zsh ghostty)
 
 XDG_CONFIG_HOME=$HOME/.config
 
