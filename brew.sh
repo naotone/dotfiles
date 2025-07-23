@@ -5,26 +5,29 @@ brew=(
   coreutils
   fzf
   ghostty
+  cursor
   hammerspoon
   raycast
   1password
+  1password-cli
+  docker-desktop
   contexts
-  keyboardcleantool
   font-sf-pro
   font-sf-mono
   tailscale-app
-  rapidapi
   nordvpn
   ngrok
   tripmode
-  cursor
   visual-studio-code
-  appcleaner
+  rapidapi
   adobe-creative-cloud
+  appcleaner
+  keyboardcleantool
   slack
   notion
   discord
   figma
+  zoom
 )
 
 browsers=(
