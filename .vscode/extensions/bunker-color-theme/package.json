@@ -2,19 +2,39 @@
     "name": "bunker-color-theme",
     "displayName": "Bunker Color Theme",
     "description": "A dark based color theme.",
-    "version": "0.0.1",
+    "version": "0.2.0",
     "publisher": "naotone",
     "author": {
         "name": "Naoto Yoshimoto",
         "email": "vscode@naotone.com"
     },
     "license": "MIT",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/naotone/dotfiles.git",
+        "directory": ".vscode/extensions/bunker-color-theme"
+    },
+    "homepage": "https://github.com/naotone/dotfiles/tree/main/.vscode/extensions/bunker-color-theme",
+    "bugs": {
+        "url": "https://github.com/naotone/dotfiles/issues"
+    },
     "engines": {
-        "vscode": "^1.19.0"
+        "vscode": "^1.74.0"
     },
     "categories": [
         "Themes"
     ],
+    "keywords": [
+        "vscode",
+        "theme",
+        "dark",
+        "bunker"
+    ],
+    "galleryBanner": {
+        "color": "#1a1b1e",
+        "theme": "dark"
+    },
     "contributes": {
         "themes": [
             {
@@ -25,10 +45,15 @@
         ]
     },
     "scripts": {
-        "lint": "./node_modules/.bin/eslint ./themes/*.json"
+        "lint": "pnpm exec eslint \"themes/**/*.json\"",
+        "package": "pnpm exec vsce package --no-dependencies",
+        "publish": "pnpm exec vsce publish --no-dependencies"
     },
-    "dependencies": {
-        "eslint": "^4.15.0",
-        "eslint-plugin-json": "^1.2.0"
-    }
+    "devDependencies": {
+        "@vscode/vsce": "^3.6.2",
+        "eslint": "^9.37.0",
+        "eslint-plugin-jsonc": "^2.21.0",
+        "jsonc-eslint-parser": "^2.4.1"
+    },
+    "packageManager": "pnpm@9.12.2"
 }
