@@ -13,6 +13,8 @@
 [core]
   editor = vim
   ignorecase = false
+  pager = delta
+  excludesfile = ~/.gitignore
 [ghq]
   root = /Users/naotone/Code
 [filter "lfs"]
@@ -23,4 +25,27 @@
 [init]
   defaultBranch = main
 [push]
+  default = current
   autoSetupRemote = true
+[interactive]
+  diffFilter = delta --color-only
+[delta]
+  line-numbers = true
+  navigate = true
+  diff-so-fancy=true
+  plus-style="#A9DEAC"
+  minus-style="#FF5A5F"
+  plus-emph-style="bold #1A1C1F #A9DEAC"
+  minus-emph-style="bold #1A1C1F #FF5A5F"
+  line-numbers-plus-style="#A9DEAC"
+  line-numbers-minus-style="#FF5A5F"
+  hunk-header-style="omit"
+[merge]
+  conflictstyle = zdiff3
+[pull]
+  ff = only
+[rebase]
+  autoStash = true
+  autosquash = true
+[alias]
+  lg = log --oneline --graph --decorate --all

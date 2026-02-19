@@ -3,6 +3,8 @@ brew=(
   reattach-to-user-namespace
   fabianishere/personal/pam_reattach
   coreutils
+  git
+  git-delta
   fzf
   ghostty
   cursor
@@ -10,14 +12,16 @@ brew=(
   raycast
   1password
   1password-cli
-  docker-desktop
   contexts
+  chatgpt
   font-sf-pro
   font-sf-mono
+  orbstack
   tailscale-app
   nordvpn
   ngrok
   tripmode
+  linear-linear
   visual-studio-code
   rapidapi
   adobe-creative-cloud
@@ -27,10 +31,17 @@ brew=(
   notion
   discord
   figma
+  lmstudio
+  proxyman
+  tableplus
   zoom
+  font-geist
+  font-geist-mono
 )
 
 browsers=(
+  choosey
+  arc
   google-chrome
   google-chrome@canary
   safari-technology-preview
