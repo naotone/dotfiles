@@ -1,3 +1,5 @@
+local DEBUG_KEYDOWN_INSPECT = false
+
 local simpleCmd = false
 local leftSet = false
 local rightSet = false
@@ -246,3 +248,92 @@ end
 -- Initial status check
 hs.console.printStyledtext("Hammerspoon configuration loaded successfully")
 checkEventTaps()
+
+
+
+-- Debug: keyDown inspector
+if keyDownInspectTap then
+  keyDownInspectTap:stop()
+end
+
+local debugKeyDownEnabled = false
+
+local function setDebugKeyDownEnabled(enabled)
+  debugKeyDownEnabled = enabled and true or false
+  if debugKeyDownEnabled then
+    keyDownInspectTap:start()
+  else
+    keyDownInspectTap:stop()
+  end
+end
+
+keyDownInspectTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(e)
+  hs.console.printStyledtext(hs.inspect({
+    keyCode = e:getKeyCode(),
+    keyboardType = e:getProperty(hs.eventtap.event.properties.keyboardEventKeyboardType),
+  }))
+  return false
+end)
+
+setDebugKeyDownEnabled(DEBUG_KEYDOWN_INSPECT)
+
+-- Internal keyboard block
+local INTERNAL_KEYBOARD_TYPE = 91
+
+if disableInternalTap then
+  disableInternalTap:stop()
+end
+
+local internalKeyboardDisabled = true
+
+local internalKeyboardMenu = hs.menubar.new()
+
+local setInternalKeyboardDisabled
+
+local function openHammerspoonConfig()
+  local path = hs.configdir .. "/init.lua"
+  hs.execute(string.format([[open "%s"]], path))
+end
+
+local function refreshInternalKeyboardMenu()
+  if not internalKeyboardMenu then
+    return
+  end
+  internalKeyboardMenu:setTitle(internalKeyboardDisabled and "⌨️OFF" or "⌨️")
+  local toggleTitle = internalKeyboardDisabled and "Enable internal keyboard" or "Disable internal keyboard"
+  internalKeyboardMenu:setMenu({
+    {title = toggleTitle, fn = function() setInternalKeyboardDisabled(not internalKeyboardDisabled) end},
+    {title = "Open Hammerspoon config", fn = openHammerspoonConfig},
+  })
+end
+
+setInternalKeyboardDisabled = function(enabled)
+  internalKeyboardDisabled = enabled and true or false
+  if internalKeyboardDisabled then
+    if not disableInternalTap then
+      disableInternalTap = hs.eventtap.new(
+        {hs.eventtap.event.types.keyDown, hs.eventtap.event.types.keyUp},
+        function(e)
+          local keyCode = e:getKeyCode()
+          if keyCode == eisuu or keyCode == kana then
+            return false
+          end
+          local t = e:getProperty(hs.eventtap.event.properties.keyboardEventKeyboardType)
+          if t == INTERNAL_KEYBOARD_TYPE then
+            return true
+          end
+          return false
+        end
+      )
+    end
+    disableInternalTap:start()
+  else
+    if disableInternalTap then
+      disableInternalTap:stop()
+    end
+  end
+  refreshInternalKeyboardMenu()
+end
+
+setInternalKeyboardDisabled(true)
+refreshInternalKeyboardMenu()
