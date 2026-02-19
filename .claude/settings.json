@@ -1,21 +1,119 @@
 {
   "permissions": {
-    "defaultModel": "acceptEddits",
-    "preferredNotifChannel": "terminal_bell",
     "allow": [
-      "Bash(ls:*)",
-      "Bash(diff:*)",
-      "Bash(grep:*)",
-      "Bash(cp:*)",
-      "Bash(pnpm:*)"
+      "Read(**)",
+      "Edit(**)",
+      "MultiEdit(**)",
+      "Write(**)",
+      "Glob(**)",
+      "Grep(**)",
+      "LS(**)",
+      "WebSearch(**)",
+      "TodoRead()",
+      "TodoWrite(**)",
+      "Task(**)",
+
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git blame*)",
+      "Bash(git branch*)",
+      "Bash(git remote -v*)",
+      "Bash(git config --get*)",
+
+      "Bash(ls*)",
+      "Bash(cat *)",
+      "Bash(less *)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Bash(grep*)",
+      "Bash(find*)",
+      "Bash(tree*)",
+      "Bash(pwd*)",
+      "Bash(wc*)",
+      "Bash(diff *)",
+
+      "Bash(mkdir:*)",
+      "Bash(pnpm run:*)",
+      "Bash(node ~/.claude/notify.js:*)"
     ],
     "deny": [
-      "Bash(git push:*)",
       "Bash(npm:*)",
-      "Bash(rm:*)",
+      "Bash(npx:*)",
+      "Bash(npm:*)",
+
+      "Read(~/.*)",
+      "Edit(~/.*)",
+      "Read(//etc/**)",
+      "Edit(//etc/**)",
+
+      "Bash(su:*)",
+      "Bash(sudo:*)",
       "Bash(chmod:*)",
       "Bash(chown:*)",
-      "Bash(chgrp:*)"
+      "Bash(chgrp:*)",
+      "Bash(chattr:*)",
+      "Bash(lsattr:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(ln:*)",
+      "Bash(touch:*)",
+      "Bash(env:*)",
+      "Bash(printenv:*)",
+      "Bash(passwd:*)",
+      "Bash(history:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)",
+      "Bash(sftp:*)",
+      "Bash(socat:*)",
+      "Bash(ssh:*)",
+      "Bash(nc:*)",
+      "Bash(ncat:*)",
+      "Bash(netcat:*)",
+      "Bash(nmap:*)",
+      "Bash(git push:*)"
     ]
-  }
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/notify.js \"Claude Code\" \"Stop\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/notify.js \"Claude Code\" \"PostToolUse\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/notify.js \"Claude Code\" \"Notification\""
+          }
+        ]
+      }
+    ]
+  },
+
+  "model": "sonnet",
+  "includeCoAuthoredBy": false
 }
