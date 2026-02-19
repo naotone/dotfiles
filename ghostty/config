@@ -44,15 +44,20 @@
 
 confirm-close-surface = false
 
-font-family = "Operator Mono, SF Mono"
-font-size = "13"
+font-family = Operator Mono
+#font-family = "Hiragino Sans"
+font-size = "14" 
 font-feature = -dlig
+font-style = Book
 
 cursor-style = underline
 cursor-style-blink = true
 
-background-opacity = 0.97
+background-opacity = 0.98
 background-blur = 2
+
+macos-titlebar-style = tabs
+
 
 background = #1A1B1E
 foreground = #DBDBDB
@@ -63,8 +68,9 @@ palette = 2=#A9DEAC
 palette = 3=#F5D062
 palette = 4=#43C0D6
 palette = 5=#E03D76
-#palette = 6=#81c8be
-#palette = 7=#F00F0
+palette = 6=#81c8be
+palette = 7=#F0F0F0
+#palette = 8=#c6c6c6
 
 
 #1A1C1F 0
