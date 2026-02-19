@@ -18,9 +18,14 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 
 #pnpm
-export PNPM_DIR="$HOME/Library/pnpm"
-if [ -d "${PNPM_DIR}" ]; then
-  export PATH=${PNPM_DIR}/node/bin:$PATH
+export PNPM_HOME="$HOME/Library/pnpm"
+if [ -d "${PNPM_HOME}" ]; then
+  export PATH=${PNPM_HOME}/node/bin:$PATH
+  case ":$PATH:" in
+    *":$PNPM_HOME:"*) ;;
+    *) export PATH="$PNPM_HOME:$PATH" ;;
+  esac
+
 fi
 
 #pyenv
@@ -79,6 +84,12 @@ if [[ -e ${HOME}/.cargo/env ]]; then
   source ${HOME}/.cargo/env
 fi
 
+# React Native Android SDK
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
 
 
@@ -90,3 +101,11 @@ export PATH="/Users/naotone/.codeium/windsurf/bin:$PATH"
 
 export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
 export PATH="/opt/homebrew/opt/curl/bin:$PATH"
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/naotone/.lmstudio/bin"
+
+# Cursor Agent CLI
+export PATH="$HOME/.local/bin:$PATH"
+
+eval "$(direnv hook zsh)"

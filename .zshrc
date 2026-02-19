@@ -34,3 +34,31 @@ if [[ "$TERM_PROGRAM" != "vscode" ]]; then
   fi
 fi
 
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/naotone/.lmstudio/bin"
+# End of LM Studio CLI section
+
+eval "$(direnv hook zsh)"
+
+# pnpm
+export PNPM_HOME="/Users/naotone/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+
+# Added by Antigravity
+export PATH="/Users/naotone/.antigravity/antigravity/bin:$PATH"
+
+# opencode
+export PATH=/Users/naotone/.opencode/bin:$PATH
+
+# bun completions
+[ -s "/Users/naotone/.bun/_bun" ] && source "/Users/naotone/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+export PATH="$HOME/.local/bin:$PATH"

@@ -2,12 +2,33 @@ SEARCH_BASE_DIRS=("$HOME" "/" "$HOME/Code")
 EXCLUDE_DIRS=("node_modules" ".git" "cache" ".cache" "log" "logs" ".next")
 # tac: brew install coreutils / brew install fzf
 
+function refresh_history_from_file() {
+  local histfile="${1:-$HISTFILE}"
+  local histsize="${HISTSIZE:-10000}"
+  local savehist="${SAVEHIST:-$histsize}"
+
+  if [[ -z "$histfile" || ! -f "$histfile" ]]; then
+    return 0
+  fi
+
+  if [[ "${__DOTFILES_HISTORY_REFRESH_STACK_ACTIVE:-0}" == "1" ]]; then
+    fc -P 2>/dev/null || true
+  fi
+
+  # Switch current history list to HISTFILE.
+  fc -p "$histfile" "$histsize" "$savehist"
+  __DOTFILES_HISTORY_REFRESH_STACK_ACTIVE=1
+}
+
 function fzf-select-history() {
   local selected
   local entry_id
 
   # Create temporary file for history processing
   local tmpfile="/tmp/zsh_history_processed.$$"
+  local history_deleted_flag="/tmp/zsh_history_deleted.$$"
+
+  rm -f "$history_deleted_flag"
 
   # Process history file to create numbered entries
   awk '
@@ -40,6 +61,7 @@ function fzf-select-history() {
             line_num=\$(awk -F'\t' -v id=\"\$entry_id\" '\$1 == id {print \$2; exit}' \"$tmpfile\")
             if [[ -n \"\$line_num\" ]]; then
               sed -i.bak \"\${line_num}d\" \"$HISTFILE\"
+              touch \"$history_deleted_flag\"
             fi
         )+reload(
             awk '
@@ -58,8 +80,14 @@ function fzf-select-history() {
         )"
   )
 
+  if [[ -f "$history_deleted_flag" ]]; then
+    refresh_history_from_file "$HISTFILE"
+    zle autosuggest-clear 2>/dev/null
+    zle autosuggest-fetch 2>/dev/null
+  fi
+
   # Clean up
-  rm -f "$tmpfile"
+  rm -f "$tmpfile" "$history_deleted_flag"
 
   if [[ -n "$selected" ]]; then
     # Extract original command and convert __NEWLINE__ back to newlines
