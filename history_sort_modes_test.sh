@@ -15,6 +15,15 @@ DB_PATH="$TMP_DIR/history_counts.sqlite3"
 OUT_RECENT="$TMP_DIR/recent.tsv"
 OUT_FREQ="$TMP_DIR/frequency.tsv"
 
+decode_candidate_command() {
+  local file="$1"
+  local row="$2"
+  local encoded
+
+  encoded="$(awk -F'\t' -v n="$row" 'NR==n {print $4}' "$file")"
+  printf '%b' "$encoded"
+}
+
 cat > "$HISTFILE_PATH" <<'HISTEOF'
 : 1700000000:0;echo alpha
 : 1700000001:0;echo beta
@@ -41,9 +50,17 @@ zsh -c "
   dotfiles_history_generate_candidates '$HISTFILE_PATH' 'frequency' '$OUT_FREQ'
 "
 
-recent_first="$(awk -F'\t' 'NR==1 {print $2}' "$OUT_RECENT")"
-recent_second="$(awk -F'\t' 'NR==2 {print $2}' "$OUT_RECENT")"
-recent_third="$(awk -F'\t' 'NR==3 {print $2}' "$OUT_RECENT")"
+recent_nf="$(awk -F'\t' 'NR==1 {print NF}' "$OUT_RECENT")"
+if [[ "$recent_nf" != "5" ]]; then
+  echo "FAIL: recent output column mismatch"
+  echo "Expected columns: 5"
+  echo "Got: $recent_nf"
+  exit 1
+fi
+
+recent_first="$(decode_candidate_command "$OUT_RECENT" 1)"
+recent_second="$(decode_candidate_command "$OUT_RECENT" 2)"
+recent_third="$(decode_candidate_command "$OUT_RECENT" 3)"
 
 if [[ "$recent_first" != "echo alpha" || "$recent_second" != "echo beta" || "$recent_third" != "echo gamma" ]]; then
   echo "FAIL: recent order mismatch"
@@ -51,9 +68,17 @@ if [[ "$recent_first" != "echo alpha" || "$recent_second" != "echo beta" || "$re
   exit 1
 fi
 
-freq_first="$(awk -F'\t' 'NR==1 {print $2}' "$OUT_FREQ")"
-freq_second="$(awk -F'\t' 'NR==2 {print $2}' "$OUT_FREQ")"
-freq_third="$(awk -F'\t' 'NR==3 {print $2}' "$OUT_FREQ")"
+freq_nf="$(awk -F'\t' 'NR==1 {print NF}' "$OUT_FREQ")"
+if [[ "$freq_nf" != "5" ]]; then
+  echo "FAIL: frequency output column mismatch"
+  echo "Expected columns: 5"
+  echo "Got: $freq_nf"
+  exit 1
+fi
+
+freq_first="$(decode_candidate_command "$OUT_FREQ" 1)"
+freq_second="$(decode_candidate_command "$OUT_FREQ" 2)"
+freq_third="$(decode_candidate_command "$OUT_FREQ" 3)"
 
 if [[ "$freq_first" != "echo beta" || "$freq_second" != "echo alpha" || "$freq_third" != "echo gamma" ]]; then
   echo "FAIL: frequency order mismatch"
@@ -93,9 +118,9 @@ zsh -c "
   dotfiles_history_generate_candidates '$HISTFILE_PATH' 'frequency' '$OUT_FREQ'
 "
 
-rebuild_first="$(awk -F'\t' 'NR==1 {print $2}' "$OUT_FREQ")"
-rebuild_second="$(awk -F'\t' 'NR==2 {print $2}' "$OUT_FREQ")"
-rebuild_third="$(awk -F'\t' 'NR==3 {print $2}' "$OUT_FREQ")"
+rebuild_first="$(decode_candidate_command "$OUT_FREQ" 1)"
+rebuild_second="$(decode_candidate_command "$OUT_FREQ" 2)"
+rebuild_third="$(decode_candidate_command "$OUT_FREQ" 3)"
 
 if [[ "$rebuild_first" != "echo alpha" || "$rebuild_second" != "echo gamma" || "$rebuild_third" != "echo beta" ]]; then
   echo "FAIL: rebuild frequency order mismatch"

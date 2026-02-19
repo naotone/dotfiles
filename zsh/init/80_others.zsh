@@ -19,7 +19,6 @@ setopt share_history
 
 zshaddhistory() {
   local cmd="${1}"
-  local first_word
 
   # Skip sensitive values
   if [[ "$cmd" =~ (pk_|sk_)[A-Za-z0-9]{8,} ]]; then
@@ -45,23 +44,10 @@ zshaddhistory() {
     return 1
   fi
 
-  cmd="${cmd//$'\t'/'  '}"
-  cmd="${cmd//$'\n'/__NEWLINE__}"
-  cmd="${cmd%$'__NEWLINE__'}"
-
-  first_word="${cmd%% *}"
-
-  # Check if command exists (builtin, function, or executable)
-  if ! command -v "$first_word" >/dev/null 2>&1; then
-    return 1
-  fi
+  cmd="${cmd%$'\n'}"
 
   if typeset -f dotfiles_history_counter_increment >/dev/null 2>&1; then
     dotfiles_history_counter_increment "$cmd"
-  fi
-
-  if tail -n 100 "$HISTFILE" 2>/dev/null | sed -E 's/^: [0-9]+:[0-9]+;//' | grep -Fxq "$cmd"; then
-    return 1
   fi
 
   print -sr -- "$cmd"
