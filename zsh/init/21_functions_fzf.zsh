@@ -163,13 +163,17 @@ EOF
   rm -f "$candidate_file" "$mode_file" "$generator_script" "$history_deleted_flag" "${HISTFILE}.bak"
 
   if [[ -n "$selected" ]]; then
-    local first_selected
+    local selected_entry
     local -a selected_fields
     local encoded_cmd
     local cmd
 
-    first_selected="${selected%%$'\n'*}"
-    selected_fields=("${(@s:$'\t':)first_selected}")
+    selected_entry="$(printf '%s\n' "$selected" | awk -F'\t' '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+$/ && $4 != "" { print; exit }')"
+    if [[ -z "$selected_entry" ]]; then
+      return 0
+    fi
+
+    IFS=$'\t' read -rA selected_fields <<< "$selected_entry"
     encoded_cmd="${selected_fields[4]:-}"
     cmd="$(printf '%b' "$encoded_cmd")"
 
