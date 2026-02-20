@@ -42,7 +42,7 @@ function dotfiles_history_delete_history_range() {
 
 function fzf-select-history() {
   local selected
-  local sort_mode="${DOTFILES_CTRL_R_HISTORY_SORT_MODE:-recent}"
+  local sort_mode="recent"
 
   # Create temporary files for history processing
   local candidate_file
