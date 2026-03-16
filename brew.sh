@@ -19,19 +19,19 @@ brew=(
   orbstack
   tailscale-app
   nordvpn
-  ngrok
   tripmode
-  linear-linear
-  visual-studio-code
   rapidapi
-  adobe-creative-cloud
   appcleaner
-  keyboardcleantool
   slack
   notion
   discord
+  dropbox
   figma
+  ollama
   lmstudio
+  adobe-creative-cloud
+  linear-linear
+  visual-studio-code
   proxyman
   tableplus
   zoom
@@ -41,7 +41,7 @@ brew=(
 
 browsers=(
   choosey
-  arc
+  zen
   google-chrome
   google-chrome@canary
   safari-technology-preview
