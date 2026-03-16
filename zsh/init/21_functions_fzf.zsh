@@ -179,6 +179,7 @@ EOF
 
     BUFFER="$cmd"
     CURSOR=$#BUFFER
+    zle reset-prompt 2>/dev/null || true
     # zle accept-line
   fi
 }
