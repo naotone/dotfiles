@@ -1,7 +1,7 @@
 brew=(
   tmux
   reattach-to-user-namespace
-  fabianishere/personal/pam_reattach
+  pam_reattach
   coreutils
   git
   git-delta
@@ -10,6 +10,8 @@ brew=(
   cursor
   hammerspoon
   raycast
+  tailscale
+  mise
   1password
   1password-cli
   contexts
@@ -17,7 +19,6 @@ brew=(
   font-sf-pro
   font-sf-mono
   orbstack
-  tailscale-app
   nordvpn
   tripmode
   rapidapi
@@ -28,7 +29,8 @@ brew=(
   dropbox
   figma
   ollama
-  lmstudio
+  ollama-app
+  lm-studio
   adobe-creative-cloud
   linear-linear
   visual-studio-code
@@ -40,7 +42,7 @@ brew=(
 )
 
 browsers=(
-  choosey
+  choosy
   zen
   google-chrome
   google-chrome@canary

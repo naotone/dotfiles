@@ -3,7 +3,7 @@
 . "$DOTPATH"/etc/lib/util.zsh
 
 inclusion_dirs=(bin)
-rc_files=(.vimrc .zshrc .zshenv .gitconfig .hammerspoon)
+rc_files=(.vimrc .zshrc .zshenv .zpreztorc .gitconfig .hammerspoon)
 config_dirs=(vim zsh)
 
 log_info "Clean symbolic links"
@@ -38,4 +38,3 @@ read
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
     rm -rf "$DOTPATH"
 fi
-
