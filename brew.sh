@@ -16,6 +16,7 @@ brew=(
   1password-cli
   contexts
   chatgpt
+  cleanshot
   font-sf-pro
   font-sf-mono
   orbstack
@@ -28,6 +29,8 @@ brew=(
   discord
   dropbox
   figma
+  figma@beta
+  hf
   ollama
   ollama-app
   lm-studio

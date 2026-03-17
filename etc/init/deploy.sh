@@ -7,6 +7,9 @@ rc_files=(.vimrc .zshrc .zshenv .zpreztorc .gitconfig .hammerspoon)
 config_dirs=(vim zsh ghostty)
 
 XDG_CONFIG_HOME=$HOME/.config
+TMUX_PLUGIN_DIR=$HOME/.tmux/plugins
+TPM_DIR=$TMUX_PLUGIN_DIR/tpm
+TPM_REPOSITORY=https://github.com/tmux-plugins/tpm
 
 if [ ! -d $XDG_CONFIG_HOME ]; then
     mkdir -p $XDG_CONFIG_HOME
@@ -41,4 +44,10 @@ if is_ssh_running; then
     ln -sfnv "$DOTPATH/.tmux.remote.conf" "$HOME/.tmux.conf"
 else
     ln -sfnv "$DOTPATH/.tmux.conf" "$HOME/.tmux.conf"
+fi
+
+if [ ! -d "$TPM_DIR" ]; then
+    log_info "Install tmux plugin manager"
+    mkdir -p "$TMUX_PLUGIN_DIR"
+    git clone "$TPM_REPOSITORY" "$TPM_DIR"
 fi
