@@ -45,6 +45,7 @@ export PATH="$PATH:/Users/naotone/.lmstudio/bin"
 # End of LM Studio CLI section
 
 eval "$(direnv hook zsh)"
+eval "$(mise activate zsh)"
 
 # pnpm
 export PNPM_HOME="/Users/naotone/Library/pnpm"
