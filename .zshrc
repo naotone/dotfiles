@@ -15,6 +15,12 @@ fi
 
 . "${XDG_CONFIG_HOME}"/zsh/zplug.zsh
 
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+elif [[ -s "$HOME/.zplug/repos/sorin-ionescu/prezto/init.zsh" ]]; then
+  source "$HOME/.zplug/repos/sorin-ionescu/prezto/init.zsh"
+fi
+
 for file in "${XDG_CONFIG_HOME}"/zsh/init/*.zsh; do
   . "$file"
 done
