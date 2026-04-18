@@ -1,9 +1,11 @@
 alias q='exit'
+alias c='clear'
+alias p='pnpm'
+
 alias crontab='crontab -i'
 
 alias vihosts='sudo vim /etc/hosts'
 alias reload='source ~/.zshrc'
-alias c='clear'
 
 alias wgetAll='wget -r -l 0 -c -t 0'
 alias rsyncDownload='rsync -ahv --progress'
