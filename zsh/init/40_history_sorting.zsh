@@ -82,7 +82,7 @@ function dotfiles_history_parse_entries_tsv() {
 
   now_epoch="$(date +%s)"
 
-  awk -v now_epoch="$now_epoch" '
+  LC_ALL=C awk -v now_epoch="$now_epoch" '
     function encode_key(value) {
       gsub(/\\/, "\\\\", value)
       gsub(/\n/, "\\n", value)
@@ -434,12 +434,12 @@ function dotfiles_history_generate_candidates() {
     return 0
   fi
 
-  tac "$parsed_file" | awk -F'\t' '!seen[$5]++ {print $1 "\t" $2 "\t" $3 "\t" $5 "\t" $6}' >| "$unique_file"
+  LC_ALL=C tac "$parsed_file" | LC_ALL=C awk -F'\t' '!seen[$5]++ {print $1 "\t" $2 "\t" $3 "\t" $5 "\t" $6}' >| "$unique_file"
 
   if [[ "$mode" == "frequency" ]]; then
     dotfiles_history_counter_export_tsv "$count_file"
-    awk -F'\t' 'NR==FNR {counts[$1]=$2; next} {count = ($4 in counts ? counts[$4] : 0); print count "\t" NR "\t" $0}' "$count_file" "$unique_file" \
-      | sort -t$'\t' -k1,1nr -k2,2n \
+    LC_ALL=C awk -F'\t' 'NR==FNR {counts[$1]=$2; next} {count = ($4 in counts ? counts[$4] : 0); print count "\t" NR "\t" $0}' "$count_file" "$unique_file" \
+      | LC_ALL=C sort -t$'\t' -k1,1nr -k2,2n \
       | cut -f3- >| "$outfile"
   else
     cat "$unique_file" >| "$outfile"

@@ -52,6 +52,7 @@ function fzf-select-history() {
   local reload_cmd
   local toggle_cmd
   local preview_cmd
+  local open_history_cmd
   local history_sorting_file
 
   candidate_file="$(mktemp /tmp/zsh_history_candidates.XXXXXX)"
@@ -105,6 +106,7 @@ EOF
   reload_cmd="DOTFILES_HISTORY_HISTFILE=${(q)HISTFILE} DOTFILES_HISTORY_CANDIDATE_FILE=${(q)candidate_file} DOTFILES_HISTORY_SORT_MODE=${(q)sort_mode} DOTFILES_HISTORY_SORT_MODE_FILE=${(q)mode_file} DOTFILES_HISTORY_SORTING_FILE=${(q)history_sorting_file} ${(q)generator_script}"
   toggle_cmd="if [[ \"\$(cat ${(q)mode_file} 2>/dev/null)\" == \"recent\" ]]; then print -r -- frequency >| ${(q)mode_file}; else print -r -- recent >| ${(q)mode_file}; fi"
   preview_cmd="printf '\\033[90mSort\\033[0m: %s  (toggle: Ctrl-S / Alt-S)\\n\\n' \"\$(cat ${(q)mode_file} 2>/dev/null || echo recent)\"; printf '\\033[90mOriginal\\033[0m\\n'; printf '%b\\n' {4}; printf '\\n\\033[90mWrapped\\033[0m\\n'; printf '%b\\n' {4} | fold -s -w \${COLUMNS:-80}"
+  open_history_cmd="if command -v open >/dev/null 2>&1; then open -a Cursor \\\"$HISTFILE\\\" >/dev/null 2>&1 || { if command -v cursor >/dev/null 2>&1; then cursor \\\"$HISTFILE\\\" >/dev/null 2>&1; fi; }; elif command -v cursor >/dev/null 2>&1; then cursor \\\"$HISTFILE\\\" >/dev/null 2>&1; fi"
 
   # Use fzf to select history
   selected=$(
@@ -118,12 +120,14 @@ EOF
         --tiebreak=index \
         --reverse \
         --multi \
-        --header='Ctrl-S / Alt-S: toggle sort (recent <-> frequency)' \
+        --header='Ctrl-S / Alt-S: toggle sort (recent <-> frequency)  Ctrl-O / Alt-O: open HISTFILE in Cursor' \
         --delimiter='\t' \
         --with-nth=5 \
         --preview "$preview_cmd" \
         --bind "ctrl-s:execute-silent($toggle_cmd)+reload($reload_cmd)+refresh-preview" \
         --bind "alt-s:execute-silent($toggle_cmd)+reload($reload_cmd)+refresh-preview" \
+        --bind "ctrl-o:execute-silent($open_history_cmd)+abort" \
+        --bind "alt-o:execute-silent($open_history_cmd)+abort" \
         --bind "ctrl-x:execute-silent(
             start_line={2}
             end_line={3}
@@ -163,12 +167,24 @@ EOF
   rm -f "$candidate_file" "$mode_file" "$generator_script" "$history_deleted_flag" "${HISTFILE}.bak"
 
   if [[ -n "$selected" ]]; then
-    local selected_entry
+    local selected_entry=""
+    local selected_line
     local -a selected_fields
     local encoded_cmd
     local cmd
 
-    selected_entry="$(printf '%s\n' "$selected" | awk -F'\t' '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+$/ && $4 != "" { print; exit }')"
+    while IFS= read -r selected_line; do
+      [[ -z "$selected_line" ]] && continue
+
+      selected_fields=()
+      IFS=$'\t' read -rA selected_fields <<< "$selected_line"
+
+      if [[ "${selected_fields[1]:-}" == <-> && "${selected_fields[2]:-}" == <-> && "${selected_fields[3]:-}" == <-> && -n "${selected_fields[4]:-}" ]]; then
+        selected_entry="$selected_line"
+        break
+      fi
+    done <<< "$selected"
+
     if [[ -z "$selected_entry" ]]; then
       return 0
     fi
