@@ -25,20 +25,7 @@ for file in "${XDG_CONFIG_HOME}"/zsh/init/*.zsh; do
   . "$file"
 done
 
-# Do not auto start tmux in vscode and cursor
-if [[ "$TERM_PROGRAM" != "vscode" ]]; then
-  if [[ -z "$TMUX" ]]; then
-    # Tailscale IP（100.64.0.0/10）
-    if [[ -n "$SSH_CONNECTION" ]]; then
-      remote_ip=$(echo "$SSH_CONNECTION" | awk '{print $1}')
-      if [[ "$remote_ip" == 100.* ]]; then
-        return
-      fi
-    fi
-
-    tmux attach || tmux new-session
-  fi
-fi
+dotfiles_maybe_autostart_tmux
 
 # Added by LM Studio CLI (lms)
 export PATH="$PATH:/Users/naotone/.lmstudio/bin"
