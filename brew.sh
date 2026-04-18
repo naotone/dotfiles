@@ -5,6 +5,7 @@ brew=(
   coreutils
   git
   git-delta
+  gh
   fzf
   ghostty
   cursor
@@ -34,6 +35,7 @@ brew=(
   ollama
   ollama-app
   lm-studio
+  ariga/tap/atlas
   adobe-creative-cloud
   linear-linear
   visual-studio-code
