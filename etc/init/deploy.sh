@@ -11,6 +11,19 @@ TMUX_PLUGIN_DIR=$HOME/.tmux/plugins
 TPM_DIR=$TMUX_PLUGIN_DIR/tpm
 TPM_REPOSITORY=https://github.com/tmux-plugins/tpm
 
+safe_symlink() {
+    local source_path="$1"
+    local target_path="$2"
+
+    if [ -e "$target_path" ] && [ ! -L "$target_path" ]; then
+        local backup_path="${target_path}.backup.$(date +%Y%m%d%H%M%S).$$"
+        log_echo "WARN: $target_path already exists; moving to $backup_path"
+        mv "$target_path" "$backup_path"
+    fi
+
+    ln -sfnv "$source_path" "$target_path"
+}
+
 if [ ! -d $XDG_CONFIG_HOME ]; then
     mkdir -p $XDG_CONFIG_HOME
 fi
@@ -22,7 +35,7 @@ for f in "$DOTPATH"/.*; do
         dotfile="${f##*/}"
         if [[ " ${rc_files[@]} " =~ " ${dotfile} " ]]; then
             log_echo ${dotfile}
-            ln -sfnv "$f" "$HOME/$dotfile"
+            safe_symlink "$f" "$HOME/$dotfile"
         fi
     fi
 done
@@ -32,18 +45,18 @@ for f in "$DOTPATH"/*; do
         dir="${f##*/}"
         if [[ " ${inclusion_dirs[@]} " =~ " ${dir} " ]]; then
             log_echo "${dir}"
-            ln -sfnv "$f" "$HOME/${dir}"
+            safe_symlink "$f" "$HOME/${dir}"
         elif [[ " ${config_dirs[@]} " =~ " ${dir} " ]]; then
             log_echo ${dir}
-            ln -sfnv "$f" "$XDG_CONFIG_HOME/${dir}"
+            safe_symlink "$f" "$XDG_CONFIG_HOME/${dir}"
         fi
     fi
 done
 
 if is_ssh_running; then
-    ln -sfnv "$DOTPATH/.tmux.remote.conf" "$HOME/.tmux.conf"
+    safe_symlink "$DOTPATH/.tmux.remote.conf" "$HOME/.tmux.conf"
 else
-    ln -sfnv "$DOTPATH/.tmux.conf" "$HOME/.tmux.conf"
+    safe_symlink "$DOTPATH/.tmux.conf" "$HOME/.tmux.conf"
 fi
 
 if [ ! -d "$TPM_DIR" ]; then
