@@ -1,8 +1,9 @@
 local DEBUG_KEYDOWN_INSPECT = false
-local DEBUG_INTERNAL_KEYBOARD_BLOCK = true
+local DEBUG_INTERNAL_KEYBOARD_BLOCK = false
 
 local rsLayerLogic = require("rs_layer_logic")
 local rsKeyResolver = require("rs_key_resolver")
+local rsLayerMenuModel = require("rs_layer_menu_model")
 
 local simpleCmd = false
 local leftSet = false
@@ -13,6 +14,7 @@ local eisuu = 0x66
 local kana = 0x68
 
 local RS_LAYER_CONFIG = {
+  debug = false,
   simultaneousThresholdMs = 70,
   activationDelayMs = 120,
   triggerBounceThresholdMs = 30,
@@ -27,7 +29,6 @@ local RS_LAYER_CONFIG = {
   },
   excludedBundleIDs = {},
   excludedAppNames = {},
-  debug = true,
 }
 
 local RS_EVENT_TYPES = {
@@ -261,6 +262,7 @@ local rsLayerDebugEnabled = RS_LAYER_CONFIG.debug and true or false
 local postingSyntheticKey = false
 local rsEventSeq = 0
 local keyTap = nil
+local updateRsLayerMenu = nil
 
 local rsWatchedKeySet = {}
 for _, triggerKey in ipairs(RS_LAYER_CONFIG.triggerKeys or {}) do
@@ -339,12 +341,30 @@ end
 
 function setRsLayerDebug(enabled)
   rsLayerDebugEnabled = enabled and true or false
+  if updateRsLayerMenu then
+    updateRsLayerMenu()
+  end
   hs.console.printStyledtext("RS debug: " .. (rsLayerDebugEnabled and "ON" or "OFF"))
 end
 
 function resetRsLayerState()
   rsLayerLogic.reset(rsLayerState)
   hs.console.printStyledtext("[RS] state reset")
+end
+
+function setRsLayerEnabled(enabled)
+  rsLayerEnabled = enabled and true or false
+  if not rsLayerEnabled then
+    rsLayerLogic.reset(rsLayerState)
+  end
+  if updateRsLayerMenu then
+    updateRsLayerMenu()
+  end
+  hs.console.printStyledtext("SD arrow layer: " .. (rsLayerEnabled and "ON" or "OFF"))
+end
+
+function toggleRsLayerEnabled()
+  setRsLayerEnabled(not rsLayerEnabled)
 end
 
 function dumpRsLayerState()
@@ -546,6 +566,9 @@ local function setDebugKeyDownEnabled(enabled)
   else
     keyDownInspectTap:stop()
   end
+  if updateRsLayerMenu then
+    updateRsLayerMenu()
+  end
 end
 
 keyDownInspectTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(e)
@@ -566,6 +589,7 @@ if disableInternalTap then
 end
 
 local internalKeyboardDisabled = false
+local internalKeyboardDebugEnabled = DEBUG_INTERNAL_KEYBOARD_BLOCK and true or false
 
 local internalKeyboardMenu = hs.menubar.new()
 
@@ -578,7 +602,7 @@ local function currentTimeMs()
 end
 
 local function maybeLogInternalBlock(event, keyCode, keyboardType)
-  if not DEBUG_INTERNAL_KEYBOARD_BLOCK then
+  if not internalKeyboardDebugEnabled then
     return
   end
   local now = currentTimeMs()
@@ -597,22 +621,57 @@ local function maybeLogInternalBlock(event, keyCode, keyboardType)
   ))
 end
 
+local function setInternalKeyboardDebugEnabled(enabled)
+  internalKeyboardDebugEnabled = enabled and true or false
+  if updateRsLayerMenu then
+    updateRsLayerMenu()
+  end
+  hs.console.printStyledtext("Internal keyboard block debug: " .. (internalKeyboardDebugEnabled and "ON" or "OFF"))
+end
+
 local function openHammerspoonConfig()
   local path = hs.configdir .. "/init.lua"
   hs.execute(string.format([[open "%s"]], path))
+end
+
+local function openHammerspoonConsole()
+  hs.openConsole(true)
 end
 
 local function refreshInternalKeyboardMenu()
   if not internalKeyboardMenu then
     return
   end
-  internalKeyboardMenu:setTitle(internalKeyboardDisabled and "⌨️OFF" or "⌨️")
-  local toggleTitle = internalKeyboardDisabled and "Enable internal keyboard" or "Disable internal keyboard"
-  internalKeyboardMenu:setMenu({
-    {title = toggleTitle, fn = function() setInternalKeyboardDisabled(not internalKeyboardDisabled) end},
-    {title = "Open Hammerspoon config", fn = openHammerspoonConfig},
-  })
+  internalKeyboardMenu:setTitle("⌨️")
+  internalKeyboardMenu:setMenu(rsLayerMenuModel.items({
+    internalKeyboardDisabled = internalKeyboardDisabled,
+    rsLayerEnabled = rsLayerEnabled,
+    rsLayerDebugEnabled = rsLayerDebugEnabled,
+    debugKeyDownEnabled = debugKeyDownEnabled,
+    internalKeyboardDebugEnabled = internalKeyboardDebugEnabled,
+  }, {
+    toggleInternalKeyboardBlock = function()
+      setInternalKeyboardDisabled(not internalKeyboardDisabled)
+    end,
+    toggleRsLayer = toggleRsLayerEnabled,
+    resetRsLayerState = resetRsLayerState,
+    openHammerspoonConfig = openHammerspoonConfig,
+    toggleRsLayerDebug = function()
+      setRsLayerDebug(not rsLayerDebugEnabled)
+    end,
+    toggleDebugKeyDown = function()
+      setDebugKeyDownEnabled(not debugKeyDownEnabled)
+    end,
+    toggleInternalKeyboardDebug = function()
+      setInternalKeyboardDebugEnabled(not internalKeyboardDebugEnabled)
+    end,
+    dumpRsLayerState = dumpRsLayerState,
+    checkEventTaps = checkEventTaps,
+    openHammerspoonConsole = openHammerspoonConsole,
+  }))
 end
+
+updateRsLayerMenu = refreshInternalKeyboardMenu
 
 setInternalKeyboardDisabled = function(enabled)
   internalKeyboardDisabled = enabled and true or false
