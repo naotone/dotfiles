@@ -4,7 +4,8 @@ local MODIFIER_KEYS = {"cmd", "alt", "shift", "ctrl", "fn"}
 
 local DEFAULT_CONFIG = {
   simultaneousThresholdMs = 70,
-  activationDelayMs = 120,
+  activationDelayMs = 50,
+  triggerBounceThresholdMs = 30,
   triggerKeys = {"r", "s"},
   navMap = {h = "left", n = "down", e = "up", i = "right"},
 }
@@ -29,6 +30,7 @@ local function normalizeConfig(config)
   local merged = {
     simultaneousThresholdMs = DEFAULT_CONFIG.simultaneousThresholdMs,
     activationDelayMs = DEFAULT_CONFIG.activationDelayMs,
+    triggerBounceThresholdMs = DEFAULT_CONFIG.triggerBounceThresholdMs,
     triggerKeys = copyArray(DEFAULT_CONFIG.triggerKeys),
     navMap = copyTable(DEFAULT_CONFIG.navMap),
   }
@@ -39,6 +41,9 @@ local function normalizeConfig(config)
   end
   if type(config.activationDelayMs) == "number" then
     merged.activationDelayMs = config.activationDelayMs
+  end
+  if type(config.triggerBounceThresholdMs) == "number" then
+    merged.triggerBounceThresholdMs = config.triggerBounceThresholdMs
   end
   if type(config.triggerKeys) == "table" and #config.triggerKeys == 2 then
     merged.triggerKeys = copyArray(config.triggerKeys)
@@ -146,6 +151,7 @@ local function flushPending(state, keepKey)
         table.insert(nextOrder, key)
       else
         table.insert(actions, keyAction(key, {}))
+        actions[#actions].keyCode = trigger.outputKeyCode
         trigger.pending = false
         trigger.emitted = true
       end
@@ -168,6 +174,7 @@ local function setIdleIfAllTriggersReleased(state)
   end
   state.layerActive = false
   state.candidateStartMs = nil
+  state.lastLayerTriggerRelease = nil
   clearAllPending(state)
 end
 
@@ -175,6 +182,7 @@ local function resetState(state)
   state.layerActive = false
   state.candidateStartMs = nil
   state.pendingOrder = {}
+  state.lastLayerTriggerRelease = nil
   for _, key in ipairs(state.config.triggerKeys) do
     state.triggers[key] = {
       down = false,
@@ -182,6 +190,7 @@ local function resetState(state)
       pending = false,
       emitted = false,
       handledDown = false,
+      outputKeyCode = nil,
     }
   end
 end
@@ -193,6 +202,47 @@ local function getOtherTriggerKey(state, key)
     end
   end
   return nil
+end
+
+local function expireLayerTriggerRelease(state, timestampMs)
+  local release = state.lastLayerTriggerRelease
+  if not release then
+    return
+  end
+  if (timestampMs - (release.timestampMs or timestampMs)) > state.config.triggerBounceThresholdMs then
+    state.lastLayerTriggerRelease = nil
+  end
+end
+
+local function canResumeLayerFromTriggerBounce(state, key, timestampMs)
+  local release = state.lastLayerTriggerRelease
+  if not release or release.key ~= key then
+    return false
+  end
+
+  local elapsedMs = timestampMs - (release.timestampMs or timestampMs)
+  if elapsedMs < 0 or elapsedMs > state.config.triggerBounceThresholdMs then
+    return false
+  end
+
+  local otherKey = getOtherTriggerKey(state, key)
+  local other = otherKey and state.triggers[otherKey] or nil
+  return other and other.down and not other.pending
+end
+
+local function resumeLayerFromTriggerBounce(state)
+  state.layerActive = true
+  state.candidateStartMs = nil
+  state.lastLayerTriggerRelease = nil
+  clearAllPending(state)
+
+  for _, key in ipairs(state.config.triggerKeys) do
+    local trigger = state.triggers[key]
+    if trigger and trigger.down then
+      trigger.emitted = true
+      trigger.handledDown = true
+    end
+  end
 end
 
 local function canStartCandidate(state, key, timestampMs)
@@ -249,6 +299,7 @@ local function maybeActivateLayer(state, nowMs)
   end
 
   state.layerActive = true
+  state.lastLayerTriggerRelease = nil
   for _, key in ipairs(state.config.triggerKeys) do
     local trigger = state.triggers[key]
     trigger.pending = false
@@ -259,7 +310,7 @@ local function maybeActivateLayer(state, nowMs)
   return true
 end
 
-local function processTriggerDown(state, key, timestampMs)
+local function processTriggerDown(state, key, timestampMs, keyCode)
   local result = emptyResult(false)
   local trigger = state.triggers[key]
   if not trigger then
@@ -278,6 +329,13 @@ local function processTriggerDown(state, key, timestampMs)
   trigger.downAtMs = timestampMs
   trigger.emitted = false
   trigger.handledDown = true
+  trigger.outputKeyCode = keyCode
+
+  if canResumeLayerFromTriggerBounce(state, key, timestampMs) then
+    resumeLayerFromTriggerBounce(state)
+    return result
+  end
+
   addPending(state, key)
 
   local otherKey = getOtherTriggerKey(state, key)
@@ -313,17 +371,31 @@ local function processTriggerUp(state, key, timestampMs)
     trigger.pending = false
     trigger.emitted = false
     trigger.handledDown = false
+    trigger.outputKeyCode = nil
     setIdleIfAllTriggersReleased(state)
     maybeActivateLayer(state, timestampMs)
     return result
   end
 
   if state.layerActive then
+    local otherKey = getOtherTriggerKey(state, key)
+    local other = otherKey and state.triggers[otherKey] or nil
+    local otherWasDown = other and other.down or false
+
     state.layerActive = false
     state.candidateStartMs = nil
     clearPending(state, key)
     trigger.emitted = false
     trigger.handledDown = false
+    trigger.outputKeyCode = nil
+    if otherWasDown then
+      state.lastLayerTriggerRelease = {
+        key = key,
+        timestampMs = timestampMs,
+      }
+    else
+      state.lastLayerTriggerRelease = nil
+    end
     setIdleIfAllTriggersReleased(state)
     return result
   end
@@ -336,6 +408,7 @@ local function processTriggerUp(state, key, timestampMs)
     else
       clearPending(state, key)
       table.insert(result.actions, keyAction(key, {}))
+      result.actions[#result.actions].keyCode = trigger.outputKeyCode
       trigger.emitted = true
     end
   else
@@ -344,6 +417,7 @@ local function processTriggerUp(state, key, timestampMs)
 
   trigger.emitted = false
   trigger.handledDown = false
+  trigger.outputKeyCode = nil
   setIdleIfAllTriggersReleased(state)
   maybeActivateLayer(state, timestampMs)
   return result
@@ -357,6 +431,7 @@ function M.new(config)
     pendingOrder = {},
     layerActive = false,
     candidateStartMs = nil,
+    lastLayerTriggerRelease = nil,
   }
 
   for _, key in ipairs(state.config.triggerKeys) do
@@ -390,11 +465,17 @@ function M.processEvent(state, event)
   end
 
   local timestampMs = event.timestampMs or 0
+  expireLayerTriggerRelease(state, timestampMs)
   maybeActivateLayer(state, timestampMs)
 
   local key = event.key
   if not key then
     return emptyResult(false)
+  end
+  local isRepeat = event["repeat"] and true or false
+
+  if eventType == "keyDown" and isRepeat and anyPending(state) then
+    return emptyResult(true)
   end
 
   if state.triggerSet[key] and hasTriggerModifiers(event.flags) then
@@ -403,7 +484,7 @@ function M.processEvent(state, event)
 
   if state.triggerSet[key] then
     if eventType == "keyDown" then
-      return processTriggerDown(state, key, timestampMs)
+      return processTriggerDown(state, key, timestampMs, event.keyCode)
     end
     return processTriggerUp(state, key, timestampMs)
   end

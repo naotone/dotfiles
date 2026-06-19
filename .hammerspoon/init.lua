@@ -2,6 +2,7 @@ local DEBUG_KEYDOWN_INSPECT = false
 local DEBUG_INTERNAL_KEYBOARD_BLOCK = true
 
 local rsLayerLogic = require("rs_layer_logic")
+local rsKeyResolver = require("rs_key_resolver")
 
 local simpleCmd = false
 local leftSet = false
@@ -14,8 +15,16 @@ local kana = 0x68
 local RS_LAYER_CONFIG = {
   simultaneousThresholdMs = 70,
   activationDelayMs = 120,
+  triggerBounceThresholdMs = 30,
   triggerKeys = {"r", "s"},
+  triggerKeyCodes = {0x01, 0x02},
   navMap = {h = "left", n = "down", e = "up", i = "right"},
+  navKeyCodeMap = {
+    [0x04] = "left",
+    [0x26] = "down",
+    [0x28] = "up",
+    [0x25] = "right",
+  },
   excludedBundleIDs = {},
   excludedAppNames = {},
   debug = true,
@@ -27,6 +36,7 @@ local RS_EVENT_TYPES = {
 }
 
 local MODIFIER_KEYS = {"cmd", "alt", "shift", "ctrl", "fn"}
+local KEYBOARD_EVENT_AUTOREPEAT_PROPERTY = hs.eventtap.event.properties.keyboardEventAutorepeat or 8
 
 local function keyStroke(modifiers, character)
   hs.eventtap.keyStroke(modifiers, character, 5000)
@@ -242,6 +252,10 @@ end
 local rsExcludedBundleIDSet = toSet(RS_LAYER_CONFIG.excludedBundleIDs)
 local rsExcludedAppNameSet = toSet(RS_LAYER_CONFIG.excludedAppNames)
 local rsLayerState = rsLayerLogic.new(RS_LAYER_CONFIG)
+local rsKeyResolverState, rsKeyResolverErr = rsKeyResolver.new(RS_LAYER_CONFIG)
+if not rsKeyResolverState then
+  hs.console.printStyledtext("RS key resolver config error: " .. tostring(rsKeyResolverErr))
+end
 local rsLayerEnabled = true
 local rsLayerDebugEnabled = RS_LAYER_CONFIG.debug and true or false
 local postingSyntheticKey = false
@@ -360,7 +374,12 @@ local function emitSyntheticActions(actions)
   local ok, err = pcall(function()
     rsDebugLog("emit start actions=" .. formatActions(actions))
     for _, action in ipairs(actions) do
-      keyStroke(action.modifiers or {}, action.key)
+      if action.keyCode then
+        hs.eventtap.event.newKeyEvent(action.modifiers or {}, action.keyCode, true):post()
+        hs.eventtap.event.newKeyEvent(action.modifiers or {}, action.keyCode, false):post()
+      else
+        keyStroke(action.modifiers or {}, action.key)
+      end
     end
   end)
   postingSyntheticKey = false
@@ -390,17 +409,24 @@ keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown, hs.eventtap.event.typ
   local appName = app and app:name() or "Unknown App"
   local bundleID = app and app:bundleID() or ""
   local keyCode = event:getKeyCode()
-  local keyString = hs.keycodes.map[keyCode]
+  local fallbackKeyString = hs.keycodes.map[keyCode]
+  local keyString = rsKeyResolver.resolveKey(rsKeyResolverState, keyCode, fallbackKeyString)
   local flags = event:getFlags()
+  local isAutoRepeat = false
+  if eventType == hs.eventtap.event.types.keyDown then
+    local repeatFlag = event:getProperty(KEYBOARD_EVENT_AUTOREPEAT_PROPERTY)
+    isAutoRepeat = repeatFlag and repeatFlag ~= 0 or false
+  end
   local isExcludedApp = isRsLayerExcludedApp(appName, bundleID)
   rsEventSeq = rsEventSeq + 1
 
   if rsLayerDebugEnabled and not keyString then
     rsDebugLog(string.format(
-      "#%d type=%s keyCode=%s key=nil mods=%s app=%s bundle=%s",
+      "#%d type=%s keyCode=%s key=nil repeat=%s mods=%s app=%s bundle=%s",
       rsEventSeq,
       eventTypeName,
       tostring(keyCode),
+      toBoolString(isAutoRepeat),
       formatModifiers(flags),
       tostring(appName),
       tostring(bundleID)
@@ -411,6 +437,8 @@ keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown, hs.eventtap.event.typ
     local ok, rsResult = pcall(rsLayerLogic.processEvent, rsLayerState, {
       type = eventTypeName,
       key = keyString,
+      keyCode = keyCode,
+      ["repeat"] = isAutoRepeat,
       timestampMs = getEventTimestampMs(event),
       flags = flags,
       excluded = isExcludedApp,
@@ -435,10 +463,12 @@ keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown, hs.eventtap.event.typ
         isExcludedApp
       ) then
         rsDebugLog(string.format(
-          "#%d type=%s key=%s excluded=%s swallow=%s actions=%s mods=%s app=%s bundle=%s state=%s",
+          "#%d type=%s keyCode=%s key=%s repeat=%s excluded=%s swallow=%s actions=%s mods=%s app=%s bundle=%s state=%s",
           rsEventSeq,
           eventTypeName,
+          tostring(keyCode),
           tostring(keyString),
+          toBoolString(isAutoRepeat),
           toBoolString(isExcludedApp),
           toBoolString(rsResult.swallow),
           formatActions(rsResult.actions),
