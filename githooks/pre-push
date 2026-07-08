@@ -1,0 +1,58 @@
+#!/bin/sh
+
+remote_name="${1:-}"
+remote_url="${2:-}"
+zero_sha=0000000000000000000000000000000000000000
+input_file="$(mktemp "${TMPDIR:-/tmp}/dotfiles-pre-push.XXXXXX")" || exit 1
+
+cleanup() {
+  rm -f "$input_file"
+}
+trap cleanup EXIT HUP INT TERM
+
+cat > "$input_file"
+
+has_unsigned=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ -z "$local_ref" ]; then
+    continue
+  fi
+
+  if [ "$local_ref" = "(delete)" ] || [ "$local_sha" = "$zero_sha" ]; then
+    continue
+  fi
+
+  if [ "$remote_sha" = "$zero_sha" ]; then
+    commits="$(git rev-list "$local_sha" --not --remotes="$remote_name")" || exit 1
+  else
+    commits="$(git rev-list "$remote_sha..$local_sha")" || exit 1
+  fi
+
+  for commit in $commits; do
+    signature_status="$(git log -1 --format=%G? "$commit" 2>/dev/null || printf 'N')"
+
+    if [ "$signature_status" != "G" ]; then
+      if [ "$has_unsigned" -eq 0 ]; then
+        echo "Error: unsigned or unverified commits are not allowed to be pushed." >&2
+        echo "Unsigned or unverified commits:" >&2
+      fi
+
+      summary="$(git log -1 --format='%h %s' "$commit" 2>/dev/null || printf '%s' "$commit")"
+      echo "  $summary" >&2
+      has_unsigned=1
+    fi
+  done
+done < "$input_file"
+
+if [ "$has_unsigned" -ne 0 ]; then
+  exit 1
+fi
+
+git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null || true)"
+if [ -n "$git_dir" ]; then
+  local_hook="$git_dir/hooks/pre-push"
+  if [ -x "$local_hook" ]; then
+    "$local_hook" "$remote_name" "$remote_url" < "$input_file"
+  fi
+fi

@@ -6,6 +6,7 @@
   format = ssh
 [gpg "ssh"]
   program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+	allowedSignersFile = /Users/naotone/.config/git/allowed_signers
 [commit]
   gpgsign = true
 [tag]
@@ -13,6 +14,7 @@
 [core]
   editor = vim
   ignorecase = false
+  hooksPath = ~/.dotfiles/githooks
   pager = delta
   excludesfile = ~/.gitignore
 [ghq]

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+signature_status="$(git log -1 --format=%G? 2>/dev/null || printf 'N')"
+
+if [ "$signature_status" != "G" ]; then
+  echo "Error: unsigned or unverified commit is not allowed." >&2
+  echo "Resetting the last commit while keeping changes staged." >&2
+
+  if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+    git reset --soft HEAD^
+  else
+    git update-ref -d HEAD
+  fi
+
+  exit 1
+fi
+
+git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null || true)"
+if [ -n "$git_dir" ]; then
+  local_hook="$git_dir/hooks/post-commit"
+  if [ -x "$local_hook" ]; then
+    "$local_hook"
+  fi
+fi
