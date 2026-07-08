@@ -196,6 +196,60 @@ local function testModifierCarryOver()
   )
 end
 
+local function testModifierFlagsChangedCarryOver()
+  local state = newState()
+  rsLayerLogic.processEvent(state, event("keyDown", "r", 0))
+  rsLayerLogic.processEvent(state, event("keyDown", "s", 20))
+
+  local ctrlDown = rsLayerLogic.processEvent(state, event("flagsChanged", nil, 160, {flags = {ctrl = true}}))
+  assertEqual(ctrlDown.swallow, false, "modifier flagsChanged should pass through")
+  assertNoActions(ctrlDown.actions, "modifier flagsChanged should not emit actions")
+
+  local hDown = rsLayerLogic.processEvent(state, event("keyDown", "h", 200))
+  assertActions(
+    hDown.actions,
+    {{key = "left", modifiers = {"ctrl"}}},
+    "nav mapping should keep ctrl from flagsChanged"
+  )
+
+  rsLayerLogic.processEvent(state, event("keyUp", "h", 210))
+  local ctrlUp = rsLayerLogic.processEvent(state, event("flagsChanged", nil, 220, {flags = {}}))
+  assertEqual(ctrlUp.swallow, false, "modifier release flagsChanged should pass through")
+  assertNoActions(ctrlUp.actions, "modifier release flagsChanged should not emit actions")
+
+  local iDown = rsLayerLogic.processEvent(state, event("keyDown", "i", 240))
+  assertActions(
+    iDown.actions,
+    {{key = "right", modifiers = {}}},
+    "nav mapping should clear released modifiers"
+  )
+end
+
+local function testAllModifierFlagsChangedCarryOver()
+  local state = newState()
+  rsLayerLogic.processEvent(state, event("keyDown", "r", 0))
+  rsLayerLogic.processEvent(state, event("keyDown", "s", 20))
+
+  local flagsDown = rsLayerLogic.processEvent(
+    state,
+    event(
+      "flagsChanged",
+      nil,
+      160,
+      {flags = {cmd = true, alt = true, shift = true, ctrl = true, fn = true, capslock = true}}
+    )
+  )
+  assertEqual(flagsDown.swallow, false, "all modifier flagsChanged should pass through")
+  assertNoActions(flagsDown.actions, "all modifier flagsChanged should not emit actions")
+
+  local eDown = rsLayerLogic.processEvent(state, event("keyDown", "e", 200))
+  assertActions(
+    eDown.actions,
+    {{key = "up", modifiers = {"cmd", "alt", "shift", "ctrl", "fn"}}},
+    "nav mapping should keep supported modifiers from flagsChanged"
+  )
+end
+
 local function testExcludedAppPassThroughAndReset()
   local state = newState()
   local excludedDown = rsLayerLogic.processEvent(state, event("keyDown", "r", 0, {excluded = true}))
@@ -228,13 +282,17 @@ end
 
 local function testTriggerWithModifierShouldPassThrough()
   local state = newState()
-  local sDown = rsLayerLogic.processEvent(state, event("keyDown", "s", 0, {flags = {cmd = true}}))
-  assertEqual(sDown.swallow, false, "cmd+s down should pass through")
-  assertActions(sDown.actions, {}, "cmd+s down should not emit synthetic actions")
+  local ctrlDown = rsLayerLogic.processEvent(state, event("flagsChanged", nil, 0, {flags = {ctrl = true}}))
+  assertEqual(ctrlDown.swallow, false, "pre-layer modifier flagsChanged should pass through")
+  assertActions(ctrlDown.actions, {}, "pre-layer modifier flagsChanged should not emit synthetic actions")
 
-  local sUp = rsLayerLogic.processEvent(state, event("keyUp", "s", 20, {flags = {cmd = true}}))
-  assertEqual(sUp.swallow, false, "cmd+s up should pass through")
-  assertActions(sUp.actions, {}, "cmd+s up should not emit synthetic actions")
+  local sDown = rsLayerLogic.processEvent(state, event("keyDown", "s", 10, {flags = {cmd = true, ctrl = true}}))
+  assertEqual(sDown.swallow, false, "cmd+ctrl+s down should pass through")
+  assertActions(sDown.actions, {}, "cmd+ctrl+s down should not emit synthetic actions")
+
+  local sUp = rsLayerLogic.processEvent(state, event("keyUp", "s", 20, {flags = {cmd = true, ctrl = true}}))
+  assertEqual(sUp.swallow, false, "cmd+ctrl+s up should pass through")
+  assertActions(sUp.actions, {}, "cmd+ctrl+s up should not emit synthetic actions")
 end
 
 local function testRepeatKeyDownDoesNotFlushPendingTrigger()
@@ -391,6 +449,8 @@ local tests = {
   testInsideThresholdWithoutActivationDelayEmitsRs,
   testLayerActivationAndNavMapping,
   testModifierCarryOver,
+  testModifierFlagsChangedCarryOver,
+  testAllModifierFlagsChangedCarryOver,
   testExcludedAppPassThroughAndReset,
   testFlushPendingOnOtherKey,
   testTriggerKeyUpWithoutManagedDownShouldPassThrough,

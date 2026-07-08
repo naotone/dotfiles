@@ -69,14 +69,29 @@ local function keyAction(key, modifiers)
   }
 end
 
-local function extractModifiers(flags)
+local function extractModifierSet(flags)
   local modifiers = {}
   for _, modifier in ipairs(MODIFIER_KEYS) do
     if flags and flags[modifier] then
+      modifiers[modifier] = true
+    end
+  end
+  return modifiers
+end
+
+local function mergedModifiers(state, flags)
+  local modifiers = {}
+  local layerModifiers = state.layerModifiers or {}
+  for _, modifier in ipairs(MODIFIER_KEYS) do
+    if layerModifiers[modifier] or (flags and flags[modifier]) then
       table.insert(modifiers, modifier)
     end
   end
   return modifiers
+end
+
+local function clearLayerModifiers(state)
+  state.layerModifiers = {}
 end
 
 local function hasTriggerModifiers(flags)
@@ -161,6 +176,7 @@ local function flushPending(state, keepKey)
   state.pendingOrder = nextOrder
   if #actions > 0 then
     state.candidateStartMs = nil
+    clearLayerModifiers(state)
   end
 
   return actions
@@ -176,6 +192,7 @@ local function setIdleIfAllTriggersReleased(state)
   state.candidateStartMs = nil
   state.lastLayerTriggerRelease = nil
   clearAllPending(state)
+  clearLayerModifiers(state)
 end
 
 local function resetState(state)
@@ -183,6 +200,7 @@ local function resetState(state)
   state.candidateStartMs = nil
   state.pendingOrder = {}
   state.lastLayerTriggerRelease = nil
+  clearLayerModifiers(state)
   for _, key in ipairs(state.config.triggerKeys) do
     state.triggers[key] = {
       down = false,
@@ -384,6 +402,7 @@ local function processTriggerUp(state, key, timestampMs)
 
     state.layerActive = false
     state.candidateStartMs = nil
+    clearLayerModifiers(state)
     clearPending(state, key)
     trigger.emitted = false
     trigger.handledDown = false
@@ -432,6 +451,7 @@ function M.new(config)
     layerActive = false,
     candidateStartMs = nil,
     lastLayerTriggerRelease = nil,
+    layerModifiers = {},
   }
 
   for _, key in ipairs(state.config.triggerKeys) do
@@ -455,7 +475,7 @@ function M.processEvent(state, event)
   end
 
   local eventType = event.type
-  if eventType ~= "keyDown" and eventType ~= "keyUp" then
+  if eventType ~= "keyDown" and eventType ~= "keyUp" and eventType ~= "flagsChanged" then
     return emptyResult(false)
   end
 
@@ -467,6 +487,13 @@ function M.processEvent(state, event)
   local timestampMs = event.timestampMs or 0
   expireLayerTriggerRelease(state, timestampMs)
   maybeActivateLayer(state, timestampMs)
+
+  if eventType == "flagsChanged" then
+    if state.layerActive or state.candidateStartMs then
+      state.layerModifiers = extractModifierSet(event.flags)
+    end
+    return emptyResult(false)
+  end
 
   local key = event.key
   if not key then
@@ -493,7 +520,7 @@ function M.processEvent(state, event)
     local mappedKey = state.config.navMap[key]
     local result = emptyResult(true)
     if eventType == "keyDown" then
-      table.insert(result.actions, keyAction(mappedKey, extractModifiers(event.flags)))
+      table.insert(result.actions, keyAction(mappedKey, mergedModifiers(state, event.flags)))
     end
     return result
   end

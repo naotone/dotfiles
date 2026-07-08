@@ -4,6 +4,7 @@ local DEBUG_INTERNAL_KEYBOARD_BLOCK = false
 local rsLayerLogic = require("rs_layer_logic")
 local rsKeyResolver = require("rs_key_resolver")
 local rsLayerMenuModel = require("rs_layer_menu_model")
+local rsLayerActionRouter = require("rs_layer_action_router")
 
 local simpleCmd = false
 local leftSet = false
@@ -34,6 +35,7 @@ local RS_LAYER_CONFIG = {
 local RS_EVENT_TYPES = {
   [hs.eventtap.event.types.keyDown] = "keyDown",
   [hs.eventtap.event.types.keyUp] = "keyUp",
+  [hs.eventtap.event.types.flagsChanged] = "flagsChanged",
 }
 
 local MODIFIER_KEYS = {"cmd", "alt", "shift", "ctrl", "fn"}
@@ -381,6 +383,52 @@ local function isRsLayerExcludedApp(appName, bundleID)
   return false
 end
 
+local function gotoAdjacentSpace(direction)
+  if not hs.spaces then
+    return nil, "hs.spaces is unavailable"
+  end
+
+  local focusedSpace = hs.spaces.focusedSpace()
+  if not focusedSpace then
+    return nil, "focused space is unavailable"
+  end
+
+  local display, displayErr = hs.spaces.spaceDisplay(focusedSpace)
+  if not display then
+    return nil, displayErr or "space display is unavailable"
+  end
+
+  local spaces, spacesErr = hs.spaces.spacesForScreen(display)
+  if not spaces then
+    return nil, spacesErr or "spaces are unavailable"
+  end
+
+  local targetSpace = rsLayerActionRouter.adjacentSpace(spaces, focusedSpace, direction)
+  if not targetSpace then
+    return true, nil, false
+  end
+
+  local ok, err = hs.spaces.gotoSpace(targetSpace)
+  return ok, err, ok and true or false
+end
+
+local function emitMissionControlAction(action)
+  local direction = rsLayerActionRouter.missionControlSpaceDirection(action)
+  if not direction then
+    return false
+  end
+
+  local ok, err, moved = gotoAdjacentSpace(direction)
+  if not ok then
+    hs.console.printStyledtext("RS Mission Control action failed: " .. tostring(err))
+  elseif moved then
+    rsDebugLog("mission control space " .. direction)
+  else
+    rsDebugLog("mission control space " .. direction .. " skipped")
+  end
+  return true
+end
+
 local function emitSyntheticActions(actions)
   if not actions or #actions == 0 then
     return
@@ -394,7 +442,9 @@ local function emitSyntheticActions(actions)
   local ok, err = pcall(function()
     rsDebugLog("emit start actions=" .. formatActions(actions))
     for _, action in ipairs(actions) do
-      if action.keyCode then
+      if emitMissionControlAction(action) then
+        -- Handled by hs.spaces.
+      elseif action.keyCode then
         hs.eventtap.event.newKeyEvent(action.modifiers or {}, action.keyCode, true):post()
         hs.eventtap.event.newKeyEvent(action.modifiers or {}, action.keyCode, false):post()
       else
@@ -414,7 +464,11 @@ local function emitSyntheticActions(actions)
   end
 end
 
-keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown, hs.eventtap.event.types.keyUp}, function(event)
+keyTap = hs.eventtap.new({
+  hs.eventtap.event.types.keyDown,
+  hs.eventtap.event.types.keyUp,
+  hs.eventtap.event.types.flagsChanged,
+}, function(event)
   if postingSyntheticKey then
     return false
   end
@@ -453,7 +507,7 @@ keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown, hs.eventtap.event.typ
     ))
   end
 
-  if rsLayerEnabled and keyString then
+  if rsLayerEnabled and (keyString or eventTypeName == "flagsChanged") then
     local ok, rsResult = pcall(rsLayerLogic.processEvent, rsLayerState, {
       type = eventTypeName,
       key = keyString,
