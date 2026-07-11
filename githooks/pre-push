@@ -24,9 +24,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
 
   if [ "$remote_sha" = "$zero_sha" ]; then
-    commits="$(git rev-list "$local_sha" --not --remotes="$remote_name")" || exit 1
+  commits="$(git rev-list "$local_sha" --not --remotes="$remote_name")" || exit 1
   else
-    commits="$(git rev-list "$remote_sha..$local_sha")" || exit 1
+  commits="$(git rev-list "$remote_sha..$local_sha" --not --remotes="$remote_name")" || exit 1
   fi
 
   for commit in $commits; do

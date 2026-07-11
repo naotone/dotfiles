@@ -13,6 +13,11 @@ if [ -z "${XDG_CACHE_HOME:-}" ]; then
   export XDG_CACHE_HOME
 fi
 
+# Nix
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+
 . "${XDG_CONFIG_HOME}"/zsh/zplug.zsh
 
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
