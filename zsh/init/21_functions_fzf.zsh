@@ -220,71 +220,90 @@ function incremental-find() {
 }
 
 function fzf-combined-cdr-find() {
-  rm -f /tmp/fzf-depth
-  rm -f /tmp/fzf-cdr-list
-  cdr_list=$(cdr -l | sed -E 's/^[0-9]+[[:space:]]+//')
-  echo "2" >/tmp/fzf-depth
-  echo "$cdr_list" >/tmp/fzf-cdr-list
+  local selected
+  local selected_dir
+  local fzf_status=0
+  local temp_dir
+  local depth_file
+  local cdr_list_file
+  local excluded_list_file
+  local base_dirs_file
+  local exclude_names_file
+  local reload_cmd
+  local preview_cmd
+  local -a cdr_list
+  local cdr_delete_script="${DOTFILES_CDR_DELETE_SCRIPT_PATH:-${DOTPATH:-$HOME/.dotfiles}/zsh/scripts/delete-cdr-history-entry.zsh}"
+  local cdr_generator_script="${DOTFILES_CDR_GENERATOR_SCRIPT_PATH:-${DOTPATH:-$HOME/.dotfiles}/zsh/scripts/generate-cdr-find-candidates.zsh}"
+  local recent_dirs_file
+  local recent_dirs_max
+  local -a recent_dirs_files
 
-  local base_dirs=""
-  for dir in "${SEARCH_BASE_DIRS[@]}"; do
-    base_dirs="${base_dirs} ${dir}"
-  done
-  base_dirs="${base_dirs:1}"
+  temp_dir="$(mktemp -d /tmp/zsh_cdr_find.XXXXXX)" || return 1
+  depth_file="$temp_dir/depth"
+  cdr_list_file="$temp_dir/cdr-list"
+  excluded_list_file="$temp_dir/excluded-list"
+  base_dirs_file="$temp_dir/base-dirs"
+  exclude_names_file="$temp_dir/exclude-names"
 
-  local exclude_pattern=""
-  for dir in "${EXCLUDE_DIRS[@]}"; do
-    exclude_pattern="${exclude_pattern} -name \"${dir}\" -o"
-  done
-  exclude_pattern="${exclude_pattern% -o}"
+  {
+    cdr -r
+    cdr_list=("${reply[@]}")
 
-  local FIND_PREFIX='find_cmd() {
-    depth=$(cat /tmp/fzf-depth 2>/dev/null || echo 1)
-    [[ $depth -lt 1 ]] && depth=1
-    search_query={q}
+    print -r -- 2 >| "$depth_file"
+    : >| "$cdr_list_file"
+    if (( ${#cdr_list} )); then
+      print -rl -- "${cdr_list[@]}" >| "$cdr_list_file"
+    fi
+    : >| "$excluded_list_file"
+    print -rl -- "${SEARCH_BASE_DIRS[@]}" >| "$base_dirs_file"
+    print -rl -- "${EXCLUDE_DIRS[@]}" >| "$exclude_names_file"
 
-    (cat /tmp/fzf-cdr-list
-     for base_dir in '$base_dirs'; do
-       if [[ -d "$base_dir" ]]; then
-         find "$base_dir" -mindepth 1 -maxdepth $depth -type d \
-           \( '$exclude_pattern' \) -prune -o -type d -print 2>/dev/null
-       fi
-     done)
-  }'
+    if zstyle -a ':chpwd:' recent-dirs-file recent_dirs_files && [[ -n "${recent_dirs_files[1]:-}" ]]; then
+      recent_dirs_file="${recent_dirs_files[1]}"
+    else
+      recent_dirs_file="${ZDOTDIR:-$HOME}/.chpwd-recent-dirs"
+    fi
 
-  selected=$(
-    fzf --print-query \
-      --reverse \
-      --tiebreak=index \
-      --bind "start:reload($FIND_PREFIX; find_cmd)+unbind(ctrl-b)" \
-      --bind "change:reload:sleep 0.1; $FIND_PREFIX; find_cmd || true" \
-      --bind 'left:execute-silent(
-      depth=$(cat /tmp/fzf-depth);
-      new_depth=$((depth - 1));
-      [[ $new_depth -lt 1 ]] && new_depth=1;
-      echo $new_depth > /tmp/fzf-depth
-    )+reload('$FIND_PREFIX'; find_cmd || true)+refresh-preview' \
-      --bind 'right:execute-silent(
-      depth=$(cat /tmp/fzf-depth);
-      new_depth=$((depth + 1));
-      echo $new_depth > /tmp/fzf-depth
-    )+reload('$FIND_PREFIX'; find_cmd || true)+refresh-preview' \
-      --color "hl:-1:underline,hl+:-1:underline:reverse" \
-      --preview 'echo "{}" | fold -s -w $COLUMNS; echo -e "Current Depth(← →): $(cat /tmp/fzf-depth 2>/dev/null)\n\n{}"' \
-      --preview-window 'down,2,border-top' \
-      --bind 'enter:accept' \
-      --bind 'esc:abort'
-  )
+    if [[ "$recent_dirs_file" == "+" ]]; then
+      recent_dirs_file="${ZDOTDIR:-$HOME}/.chpwd-recent-dirs"
+    fi
 
-  if [[ $? -eq 130 ]]; then # Esc or Ctrl-C is pressed
+    zstyle -s ':chpwd:' recent-dirs-max recent_dirs_max || recent_dirs_max=20
+
+    reload_cmd="zsh ${(q)cdr_generator_script} ${(q)cdr_list_file} ${(q)excluded_list_file} ${(q)depth_file} ${(q)base_dirs_file} ${(q)exclude_names_file}"
+    preview_cmd="if grep -Fqx -- {} ${(q)cdr_list_file}; then source_label='cdr history'; else source_label='filesystem search'; fi; printf '\\033[90mSource\\033[0m: %s\\n' \"\$source_label\"; printf '\\033[90mDepth\\033[0m: %s\\n\\n' \"\$(cat ${(q)depth_file} 2>/dev/null || echo 1)\"; printf '%s\\n' {} | fold -s -w \${COLUMNS:-80}"
+
+    selected=$(
+      fzf --print-query \
+        --reverse \
+        --no-sort \
+        --header='Ctrl-X: remove history / hide search result for this menu' \
+        --bind "start:reload($reload_cmd)+unbind(ctrl-b)" \
+        --bind "change:reload:sleep 0.1; $reload_cmd || true" \
+        --bind "ctrl-x:execute-silent(zsh ${(q)cdr_delete_script} ${(q)recent_dirs_file} {} ${(q)cdr_list_file} ${(q)recent_dirs_max} ${(q)excluded_list_file})+reload($reload_cmd)+refresh-preview" \
+        --bind "left:execute-silent(depth=\$(cat ${(q)depth_file}); new_depth=\$((depth - 1)); [[ \$new_depth -lt 1 ]] && new_depth=1; print -r -- \$new_depth >| ${(q)depth_file})+reload($reload_cmd)+refresh-preview" \
+        --bind "right:execute-silent(depth=\$(cat ${(q)depth_file}); new_depth=\$((depth + 1)); print -r -- \$new_depth >| ${(q)depth_file})+reload($reload_cmd)+refresh-preview" \
+        --color "hl:-1:underline,hl+:-1:underline:reverse" \
+        --preview "$preview_cmd" \
+        --preview-window 'down,3,border-top' \
+        --bind 'enter:accept' \
+        --bind 'esc:abort'
+    )
+    fzf_status=$?
+  } always {
+    if [[ "$temp_dir" == /tmp/zsh_cdr_find.* ]]; then
+      rm -rf -- "$temp_dir"
+    fi
+  }
+
+  if (( fzf_status == 130 )); then # Esc or Ctrl-C is pressed
     return
   fi
 
-  query=$(echo "$selected" | head -n 1) # First line is the query
-  selected_dir=$(echo "$selected" | tail -n +2)
+  selected_dir=$(print -r -- "$selected" | tail -n +2)
 
   if [[ -n "$selected_dir" && "$selected_dir" != "Searching directories..."* ]]; then
-    BUFFER="cd $selected_dir"
+    BUFFER="cd ${(q)selected_dir}"
     zle accept-line
     return
   fi
