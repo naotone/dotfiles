@@ -309,3 +309,43 @@ function fzf-combined-cdr-find() {
   fi
 }
 zle -N fzf-combined-cdr-find
+
+function fzf-git-switch() {
+  local candidates
+  local selected
+  local fzf_status=0
+  local generator_script="${DOTFILES_GIT_SWITCH_CANDIDATES_SCRIPT_PATH:-${DOTPATH:-$HOME/.dotfiles}/zsh/scripts/generate-git-switch-candidates.zsh}"
+
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    zle -M 'Not inside a Git repository'
+    return 1
+  fi
+
+  candidates="$(zsh "$generator_script")" || return 1
+  if [[ -z "$candidates" ]]; then
+    zle -M 'No other local branches'
+    return 0
+  fi
+
+  selected="$(
+    print -r -- "$candidates" |
+      fzf --reverse \
+        --no-sort \
+        --prompt='git switch> ' \
+        --header='Local branches ordered by recent switch history'
+  )"
+  fzf_status=$?
+
+  if (( fzf_status == 130 )); then
+    return 0
+  fi
+
+  if (( fzf_status != 0 )) || [[ -z "$selected" ]]; then
+    return "$fzf_status"
+  fi
+
+  BUFFER="git switch ${(q)selected}"
+  CURSOR=$#BUFFER
+  zle accept-line
+}
+zle -N fzf-git-switch
