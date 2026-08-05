@@ -34,5 +34,3 @@ function generateThumbnailFlatten() {
   convert $1 -resize 800x800 -quality 90 -flatten -background white -transparent white -profile '/Library/Application Support/Adobe/Color/Profiles/Recommended/JapanColor2001Coated.icc' -colorspace CMYK -profile '/Library/Application Support/Adobe/Color/Profiles/Recommended/sRGB Color Space Profile.icm' -colorspace sRGB $1.jpg
   convert $1 -resize 800x800 -quality 90 -flatten -background white -transparent white -profile '/Library/Application Support/Adobe/Color/Profiles/Recommended/JapanColor2001Coated.icc' -colorspace CMYK -profile '/Library/Application Support/Adobe/Color/Profiles/Recommended/sRGB Color Space Profile.icm' -colorspace sRGB $1.jpg
 }
-
-function gi() { curl -L -s https://www.gitignore.io/api/$@; }

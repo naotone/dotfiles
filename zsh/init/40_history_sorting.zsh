@@ -440,7 +440,7 @@ function dotfiles_history_generate_candidates() {
     dotfiles_history_counter_export_tsv "$count_file"
     LC_ALL=C awk -F'\t' 'NR==FNR {counts[$1]=$2; next} {count = ($4 in counts ? counts[$4] : 0); print count "\t" NR "\t" $0}' "$count_file" "$unique_file" \
       | LC_ALL=C sort -t$'\t' -k1,1nr -k2,2n \
-      | cut -f3- >| "$outfile"
+      | LC_ALL=C cut -f3- >| "$outfile"
   else
     cat "$unique_file" >| "$outfile"
   fi

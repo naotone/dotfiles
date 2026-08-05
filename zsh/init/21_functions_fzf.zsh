@@ -225,11 +225,13 @@ function fzf-combined-cdr-find() {
   local fzf_status=0
   local temp_dir
   local depth_file
+  local sort_mode_file
   local cdr_list_file
   local excluded_list_file
   local base_dirs_file
   local exclude_names_file
   local reload_cmd
+  local toggle_sort_cmd
   local preview_cmd
   local -a cdr_list
   local cdr_delete_script="${DOTFILES_CDR_DELETE_SCRIPT_PATH:-${DOTPATH:-$HOME/.dotfiles}/zsh/scripts/delete-cdr-history-entry.zsh}"
@@ -240,6 +242,7 @@ function fzf-combined-cdr-find() {
 
   temp_dir="$(mktemp -d /tmp/zsh_cdr_find.XXXXXX)" || return 1
   depth_file="$temp_dir/depth"
+  sort_mode_file="$temp_dir/sort-mode"
   cdr_list_file="$temp_dir/cdr-list"
   excluded_list_file="$temp_dir/excluded-list"
   base_dirs_file="$temp_dir/base-dirs"
@@ -250,6 +253,7 @@ function fzf-combined-cdr-find() {
     cdr_list=("${reply[@]}")
 
     print -r -- 2 >| "$depth_file"
+    print -r -- 'path relevance' >| "$sort_mode_file"
     : >| "$cdr_list_file"
     if (( ${#cdr_list} )); then
       print -rl -- "${cdr_list[@]}" >| "$cdr_list_file"
@@ -271,16 +275,22 @@ function fzf-combined-cdr-find() {
     zstyle -s ':chpwd:' recent-dirs-max recent_dirs_max || recent_dirs_max=20
 
     reload_cmd="zsh ${(q)cdr_generator_script} ${(q)cdr_list_file} ${(q)excluded_list_file} ${(q)depth_file} ${(q)base_dirs_file} ${(q)exclude_names_file}"
-    preview_cmd="if grep -Fqx -- {} ${(q)cdr_list_file}; then source_label='cdr history'; else source_label='filesystem search'; fi; printf '\\033[90mSource\\033[0m: %s\\n' \"\$source_label\"; printf '\\033[90mDepth\\033[0m: %s\\n\\n' \"\$(cat ${(q)depth_file} 2>/dev/null || echo 1)\"; printf '%s\\n' {} | fold -s -w \${COLUMNS:-80}"
+    toggle_sort_cmd="if [[ \"\$(cat ${(q)sort_mode_file} 2>/dev/null)\" == \"path relevance\" ]]; then print -r -- recent >| ${(q)sort_mode_file}; else print -r -- 'path relevance' >| ${(q)sort_mode_file}; fi"
+    preview_cmd="printf '\\033[90mSort\\033[0m: %s  (toggle: Ctrl-S / Alt-S)\\n' \"\$(cat ${(q)sort_mode_file} 2>/dev/null || echo 'path relevance')\"; printf '\\033[90mSource\\033[0m: %s\\n' {3}; printf '\\033[90mDepth\\033[0m: %s\\n\\n' \"\$(cat ${(q)depth_file} 2>/dev/null || echo 1)\"; printf '%s\\n' {2} | fold -s -w \${COLUMNS:-80}"
 
     selected=$(
       fzf --print-query \
         --reverse \
-        --no-sort \
-        --header='Ctrl-X: remove history / hide search result for this menu' \
+        --scheme=path \
+        --delimiter=$'\t' \
+        --with-nth=2 \
+        --accept-nth=1 \
+        --header='Ctrl-S / Alt-S: toggle sort (path relevance <-> recent)  Ctrl-X: remove history / hide search result for this menu' \
         --bind "start:reload($reload_cmd)+unbind(ctrl-b)" \
         --bind "change:reload:sleep 0.1; $reload_cmd || true" \
-        --bind "ctrl-x:execute-silent(zsh ${(q)cdr_delete_script} ${(q)recent_dirs_file} {} ${(q)cdr_list_file} ${(q)recent_dirs_max} ${(q)excluded_list_file})+reload($reload_cmd)+refresh-preview" \
+        --bind "ctrl-s:execute-silent($toggle_sort_cmd)+toggle-sort+refresh-preview" \
+        --bind "alt-s:execute-silent($toggle_sort_cmd)+toggle-sort+refresh-preview" \
+        --bind "ctrl-x:execute-silent(zsh ${(q)cdr_delete_script} ${(q)recent_dirs_file} {1} ${(q)cdr_list_file} ${(q)recent_dirs_max} ${(q)excluded_list_file})+reload($reload_cmd)+refresh-preview" \
         --bind "left:execute-silent(depth=\$(cat ${(q)depth_file}); new_depth=\$((depth - 1)); [[ \$new_depth -lt 1 ]] && new_depth=1; print -r -- \$new_depth >| ${(q)depth_file})+reload($reload_cmd)+refresh-preview" \
         --bind "right:execute-silent(depth=\$(cat ${(q)depth_file}); new_depth=\$((depth + 1)); print -r -- \$new_depth >| ${(q)depth_file})+reload($reload_cmd)+refresh-preview" \
         --color "hl:-1:underline,hl+:-1:underline:reverse" \

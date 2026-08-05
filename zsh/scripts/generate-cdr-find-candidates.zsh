@@ -33,6 +33,20 @@ if [[ -r "$excluded_list_file" ]]; then
   done < "$excluded_list_file"
 fi
 
+function emit_candidate() {
+  local absolute_dir="$1"
+  local source_label="$2"
+  local display_dir="$absolute_dir"
+
+  if [[ "$absolute_dir" == "$HOME" ]]; then
+    display_dir='~'
+  elif [[ "$absolute_dir" == "$HOME/"* ]]; then
+    display_dir="~/${absolute_dir#${HOME}/}"
+  fi
+
+  print -r -- "$absolute_dir"$'\t'"$display_dir"$'\t'"$source_label"
+}
+
 if [[ -r "$cdr_list_file" ]]; then
   while IFS= read -r dir || [[ -n "$dir" ]]; do
     [[ -z "$dir" ]] && continue
@@ -40,7 +54,7 @@ if [[ -r "$cdr_list_file" ]]; then
     [[ -n "${seen_dirs[$dir]:-}" ]] && continue
 
     seen_dirs[$dir]=1
-    print -r -- "$dir"
+    emit_candidate "$dir" 'cdr history'
   done < "$cdr_list_file"
 fi
 
@@ -75,5 +89,5 @@ while IFS= read -r dir || [[ -n "$dir" ]]; do
   [[ -n "${seen_dirs[$dir]:-}" ]] && continue
 
   seen_dirs[$dir]=1
-  print -r -- "$dir"
+  emit_candidate "$dir" 'filesystem search'
 done < <(emit_find_candidates | LC_ALL=C sort -u)

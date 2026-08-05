@@ -152,8 +152,39 @@ while IFS= read -r temp_dir; do
   fi
 done < "$TMP_DIR/fzf-temp-dir.txt"
 
-if ! grep -Fxq -- '--no-sort' "$TMP_DIR/fzf-args.txt"; then
-  echo 'FAIL: Ctrl-U does not preserve cdr-first candidate order'
+if grep -Fxq -- '--no-sort' "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U disables relevance sorting'
+  exit 1
+fi
+
+if ! grep -Fxq -- '--scheme=path' "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U does not use path relevance sorting'
+  exit 1
+fi
+
+if ! grep -Fq 'ctrl-s:execute-silent(' "$TMP_DIR/fzf-args.txt" ||
+  ! grep -Fq 'alt-s:execute-silent(' "$TMP_DIR/fzf-args.txt" ||
+  [[ "$(grep -Fc '+toggle-sort+refresh-preview' "$TMP_DIR/fzf-args.txt")" != '2' ]]; then
+  echo 'FAIL: Ctrl-U does not register Ctrl-S and Alt-S sort toggles'
+  exit 1
+fi
+
+if ! grep -Fq 'Ctrl-S / Alt-S: toggle sort (path relevance <-> recent)' "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U header does not explain sort toggling'
+  exit 1
+fi
+
+if ! grep -Fq "Sort\\033[0m: %s" "$TMP_DIR/fzf-args.txt" ||
+  ! grep -Fq 'path relevance' "$TMP_DIR/fzf-args.txt" ||
+  ! grep -Fq 'recent' "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U preview does not show the current sort mode'
+  exit 1
+fi
+
+if ! grep -Fxq -- $'--delimiter=\t' "$TMP_DIR/fzf-args.txt" ||
+  ! grep -Fxq -- '--with-nth=2' "$TMP_DIR/fzf-args.txt" ||
+  ! grep -Fxq -- '--accept-nth=1' "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U does not separate display and absolute path fields'
   exit 1
 fi
 
@@ -172,9 +203,13 @@ if ! grep -Fq "$ROOT_DIR/zsh/scripts/generate-cdr-find-candidates.zsh" "$TMP_DIR
   exit 1
 fi
 
-if ! grep -Fq "source_label='cdr history'" "$TMP_DIR/fzf-args.txt" ||
-  ! grep -Fq "source_label='filesystem search'" "$TMP_DIR/fzf-args.txt"; then
-  echo 'FAIL: Ctrl-U preview does not identify the candidate source'
+if ! grep -Fq "{3}" "$TMP_DIR/fzf-args.txt" || ! grep -Fq "{2}" "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U preview does not use display path and source fields'
+  exit 1
+fi
+
+if ! grep -Fq "{1}" "$TMP_DIR/fzf-args.txt"; then
+  echo 'FAIL: Ctrl-U actions do not use the absolute path field'
   exit 1
 fi
 
