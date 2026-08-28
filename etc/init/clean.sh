@@ -4,7 +4,7 @@
 
 inclusion_dirs=(bin)
 rc_files=(.vimrc .zshrc .zshenv .zpreztorc .gitconfig .hammerspoon)
-config_dirs=(vim zsh)
+config_dirs=(vim zsh ghostty)
 
 log_info "Clean symbolic links"
 
