@@ -50,4 +50,5 @@
   autoStash = true
   autosquash = true
 [alias]
-  lg = log --oneline --graph --decorate --all
+  lg = log --oneline --graph --decorate
+  tree = log --graph --oneline --decorate
