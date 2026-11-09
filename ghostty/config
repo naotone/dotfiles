@@ -43,9 +43,16 @@
 # resize-overlay-duration = 4s 200ms
 
 confirm-close-surface = false
-
 font-family = Operator Mono
-#font-family = "Hiragino Sans"
+font-codepoint-map = U+3000-U+303F=Hiragino Sans
+font-codepoint-map = U+3040-U+309F=Hiragino Sans
+font-codepoint-map = U+30A0-U+30FF=Hiragino Sans
+font-codepoint-map = U+31F0-U+31FF=Hiragino Sans
+font-codepoint-map = U+3400-U+4DBF=Hiragino Sans
+font-codepoint-map = U+4E00-U+9FFF=Hiragino Sans
+font-codepoint-map = U+F900-U+FAFF=Hiragino Sans
+font-codepoint-map = U+FF00-U+FFEF=Hiragino Sans
+
 font-size = "14" 
 font-feature = -dlig
 font-style = Book
