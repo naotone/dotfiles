@@ -10,7 +10,9 @@ if [[ "$TERM" != "screen-256color" ]]; then
   export TERM="xterm-256color"
 fi
 
-export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+if [[ -z "${SSH_CONNECTION-}" && -z "${SSH_TTY-}" ]]; then
+  export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+fi
 
 #nvm
 export NVM_DIR="$HOME/.nvm"
