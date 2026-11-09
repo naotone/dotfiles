@@ -4,7 +4,7 @@ brew=(
   pam_reattach
   coreutils
   git
-  git-delta
+  hunk
   gh
   fzf
   ghostty

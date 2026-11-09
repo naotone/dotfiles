@@ -15,7 +15,7 @@
   editor = vim
   ignorecase = false
   hooksPath = ~/.dotfiles/githooks
-  pager = delta
+  pager = hunk pager
   excludesfile = ~/.gitignore
 [ghq]
   root = /Users/naotone/Code
@@ -29,19 +29,6 @@
 [push]
   default = current
   autoSetupRemote = true
-[interactive]
-  diffFilter = delta --color-only
-[delta]
-  line-numbers = true
-  navigate = true
-  diff-so-fancy=true
-  plus-style="#A9DEAC"
-  minus-style="#FF5A5F"
-  plus-emph-style="bold #1A1C1F #A9DEAC"
-  minus-emph-style="bold #1A1C1F #FF5A5F"
-  line-numbers-plus-style="#A9DEAC"
-  line-numbers-minus-style="#FF5A5F"
-  hunk-header-style="omit"
 [merge]
   conflictstyle = zdiff3
 [pull]
