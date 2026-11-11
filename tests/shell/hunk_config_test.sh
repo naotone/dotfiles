@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 GIT_CONFIG_FILE="$ROOT_DIR/.gitconfig"
 BREW_FILE="$ROOT_DIR/brew.sh"
 

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 HOOK_PATH="$ROOT_DIR/githooks/pre-push"
 TMP_DIR="$(mktemp -d /tmp/dotfiles_githooks_pre_push.XXXXXX)"
 ZERO_SHA=0000000000000000000000000000000000000000

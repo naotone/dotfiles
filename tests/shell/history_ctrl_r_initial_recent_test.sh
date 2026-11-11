@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 TMP_DIR="$(mktemp -d /tmp/zsh_history_ctrl_r_recent.XXXXXX)"
 TMP_HISTFILE="$TMP_DIR/history"
 TMP_BIN="$TMP_DIR/bin"

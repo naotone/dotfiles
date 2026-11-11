@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 TMP_DIR="$(mktemp -d /tmp/zsh_git_ctrl_g_candidates.XXXXXX)"
 REPO_DIR="$TMP_DIR/repo"
 WORKTREE_DIR="$TMP_DIR/occupied-worktree"

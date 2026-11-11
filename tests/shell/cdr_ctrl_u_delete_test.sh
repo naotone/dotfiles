@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 TMP_DIR="$(mktemp -d /tmp/zsh_cdr_ctrl_u_delete.XXXXXX)"
 RECENT_DIRS_FILE="$TMP_DIR/recent-dirs"
 CDR_LIST_FILE="$TMP_DIR/cdr-list"

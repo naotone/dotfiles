@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 SOURCE_FILE="${1:-$ROOT_DIR/zsh/init/12_moshi_git_signing.zsh}"
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
