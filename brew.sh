@@ -1,8 +1,10 @@
 brew=(
   tmux
   reattach-to-user-namespace
-  pam_reattach
+  pam-reattach
   coreutils
+  rsync
+  speedtest-go
   git
   hunk
   gh
@@ -17,6 +19,7 @@ brew=(
   1password-cli
   contexts
   chatgpt
+  grok-bot
   cleanshot
   font-sf-pro
   font-sf-mono
@@ -68,10 +71,10 @@ if ! command -v brew &> /dev/null; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 brew update
-brew upgrade
+brew upgrade --yes
 
 echo "installing packages..."
-brew install ${brew[@]}
+brew install --yes ${brew[@]}
 
 echo "installing browsers..."
-brew install --cask ${browsers[@]}
+brew install --yes --cask ${browsers[@]}
