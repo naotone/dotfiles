@@ -295,17 +295,18 @@ local function testTriggerWithModifierShouldPassThrough()
   assertActions(sUp.actions, {}, "cmd+ctrl+s up should not emit synthetic actions")
 end
 
-local function testRepeatKeyDownDoesNotFlushPendingTrigger()
+local function testUnrelatedRepeatFlushesPendingTrigger()
   local state = newState()
-  rsLayerLogic.processEvent(state, event("keyDown", "s", 0))
+  rsLayerLogic.processEvent(state, event("keyDown", "a", 0))
+  rsLayerLogic.processEvent(state, event("keyDown", "s", 100))
 
-  local repeated = rsLayerLogic.processEvent(state, event("keyDown", "d", 200, {["repeat"] = true}))
-  assertEqual(repeated.swallow, true, "repeat keyDown while trigger is pending should be swallowed")
-  assertActions(repeated.actions, {}, "repeat keyDown while trigger is pending should not flush trigger")
+  local repeated = rsLayerLogic.processEvent(state, event("keyDown", "a", 200, {["repeat"] = true}))
+  assertEqual(repeated.swallow, false, "unrelated repeat should pass through")
+  assertActions(repeated.actions, {{key = "s"}}, "pending trigger should precede unrelated repeat")
 
   local sUp = rsLayerLogic.processEvent(state, event("keyUp", "s", 220))
   assertEqual(sUp.swallow, true, "trigger up should still be handled")
-  assertActions(sUp.actions, {{key = "s", modifiers = {}}}, "single trigger should emit once on release")
+  assertNoActions(sUp.actions, "flushed trigger should not emit again on release")
 end
 
 local function testRepeatedTriggerAutoRepeatDoesNotChatter()
@@ -374,6 +375,7 @@ local function testHeldNavAutoRepeatEmitsOneArrowPerKeyDown()
   for i = 1, STRESS_RUNS do
     local repeated = rsLayerLogic.processEvent(state, event("keyDown", "h", 160 + i, {["repeat"] = true}))
     assertEqual(repeated.swallow, true, "nav repeat should be swallowed")
+    assertEqual(repeated.actions[1]["repeat"], true, "nav action should preserve repeat metadata")
     arrowCount = arrowCount + countActions(repeated.actions, "left")
   end
 
@@ -397,6 +399,7 @@ local function testActiveLayerTriggerBounceDoesNotLeakTriggerKeys()
     local firstNav = rsLayerLogic.processEvent(state, event("keyDown", "h", base + 160))
     assertEqual(firstNav.swallow, true, "first nav keyDown should be swallowed")
     arrowCount = arrowCount + countActions(firstNav.actions, "left")
+    rsLayerLogic.processEvent(state, event("keyUp", "h", base + 162))
 
     local bouncedUp = rsLayerLogic.processEvent(state, event("keyUp", "s", base + 165))
     assertEqual(bouncedUp.swallow, true, "bounced trigger keyUp should be swallowed")
@@ -429,6 +432,7 @@ local function testTriggerReleaseBounceWindowExpires()
   local sUp = rsLayerLogic.processEvent(state, event("keyUp", "s", 165))
   assertEqual(sUp.swallow, true, "trigger release should be swallowed")
   assertNoActions(sUp.actions, "trigger release should not emit actions")
+  rsLayerLogic.processEvent(state, event("keyUp", "h", 180))
 
   local hDown = rsLayerLogic.processEvent(state, event("keyDown", "h", 196))
   assertEqual(hDown.swallow, false, "nav after bounce window should pass through")
@@ -440,6 +444,136 @@ local function testTriggerTapEmitsOriginalKeyCode()
   rsLayerLogic.processEvent(state, event("keyDown", "s", 0, {keyCode = 0x02}))
   local sUp = rsLayerLogic.processEvent(state, event("keyUp", "s", 40))
   assertEqual(sUp.actions[1].keyCode, 0x02, "trigger tap should keep original keyCode for emit")
+end
+
+local function activateLayer(state)
+  rsLayerLogic.processEvent(state, event("keyDown", "r", 0))
+  rsLayerLogic.processEvent(state, event("keyDown", "s", 20))
+  rsLayerLogic.processEvent(state, event("flagsChanged", nil, 160))
+end
+
+local function testModifiedTriggerReleaseEndsLayer()
+  for _, modifier in ipairs({"shift", "ctrl", "cmd", "alt", "fn"}) do
+    local state = newState()
+    activateLayer(state)
+    local options = {flags = {[modifier] = true}}
+    rsLayerLogic.processEvent(state, event("flagsChanged", nil, 170, options))
+    for index, key in ipairs({"r", "s"}) do
+      local up = rsLayerLogic.processEvent(state, event("keyUp", key, 180 + index, options))
+      assertEqual(up.swallow, true, "managed trigger release with " .. modifier .. " should be swallowed")
+      assertNoActions(up.actions, "managed trigger release should not leak text")
+      assertEqual(state.triggers[key].down, false, "released trigger should no longer be down")
+    end
+    rsLayerLogic.processEvent(state, event("flagsChanged", nil, 200))
+    local nav = rsLayerLogic.processEvent(state, event("keyDown", "h", 210))
+    assertEqual(nav.swallow, false, "plain nav key after modified trigger release should pass through")
+    assertNoActions(nav.actions, "released layer should not emit arrows")
+  end
+end
+
+local function testManagedTriggerRepeatWithModifierDoesNotLeak()
+  local state = newState()
+  rsLayerLogic.processEvent(state, event("keyDown", "s", 0, {keyCode = 0x02}))
+  local repeated = rsLayerLogic.processEvent(state, event("keyDown", "s", 20, {
+    flags = {shift = true}, ["repeat"] = true,
+  }))
+  assertEqual(repeated.swallow, true, "managed trigger repeat with modifiers should stay consumed")
+  assertNoActions(repeated.actions, "managed trigger repeat should not emit text")
+  local up = rsLayerLogic.processEvent(state, event("keyUp", "s", 40, {flags = {shift = true}}))
+  assertEqual(up.swallow, true, "managed trigger tap release with modifiers should be consumed")
+  assertActions(up.actions, {{key = "s"}}, "tap should preserve modifiers from its original press")
+  assertEqual(up.actions[1].keyCode, 0x02, "tap should preserve its physical keycode")
+end
+
+local function testShortcutTriggerStaysUnmanagedAfterModifierRelease()
+  local state = newState()
+  rsLayerLogic.processEvent(state, event("keyDown", "s", 0, {flags = {cmd = true}}))
+  rsLayerLogic.processEvent(state, event("flagsChanged", nil, 10))
+  local repeated = rsLayerLogic.processEvent(state, event("keyDown", "s", 20, {["repeat"] = true}))
+  assertEqual(repeated.swallow, false, "shortcut repeat after modifier release should pass through")
+  local up = rsLayerLogic.processEvent(state, event("keyUp", "s", 30))
+  assertEqual(up.swallow, false, "shortcut trigger release should pass through")
+  assertNoActions(up.actions, "shortcut trigger should never be replayed")
+end
+
+local function testDuplicateNavDownEmitsOnlyOnce()
+  local state = newState()
+  activateLayer(state)
+  local first = rsLayerLogic.processEvent(state, event("keyDown", "h", 170))
+  assertActions(first.actions, {{key = "left"}}, "initial press should emit one arrow")
+  for i = 1, STRESS_RUNS do
+    local duplicate = rsLayerLogic.processEvent(state, event("keyDown", "h", 170 + i))
+    assertEqual(duplicate.swallow, true, "duplicate nav down should be consumed")
+    assertNoActions(duplicate.actions, "duplicate non-repeat down should not emit an arrow")
+  end
+  rsLayerLogic.processEvent(state, event("keyUp", "h", 700))
+  local nextPress = rsLayerLogic.processEvent(state, event("keyDown", "h", 710))
+  assertActions(nextPress.actions, {{key = "left"}}, "fresh press should emit another arrow")
+end
+
+local function testHeldNavStopsUntilReleaseAfterTriggerBounce()
+  local state = newState()
+  activateLayer(state)
+  rsLayerLogic.processEvent(state, event("keyDown", "h", 170))
+  rsLayerLogic.processEvent(state, event("keyDown", "i", 171))
+  rsLayerLogic.processEvent(state, event("keyUp", "s", 180))
+  for _, time in ipairs({181, 185, 300}) do
+    if time == 185 then
+      rsLayerLogic.processEvent(state, event("keyDown", "s", 184))
+      assertTrue(state.layerActive, "trigger bounce should resume the layer")
+    end
+    for _, key in ipairs({"h", "i"}) do
+      local repeated = rsLayerLogic.processEvent(state, event("keyDown", key, time, {["repeat"] = true}))
+      assertEqual(repeated.swallow, true, "held nav must not leak original text after release")
+      assertNoActions(repeated.actions, "held nav must not resume after trigger bounce")
+    end
+  end
+  local up = rsLayerLogic.processEvent(state, event("keyUp", "h", 310))
+  assertEqual(up.swallow, true, "consumed nav release should also be consumed")
+  local fresh = rsLayerLogic.processEvent(state, event("keyDown", "h", 320))
+  assertActions(fresh.actions, {{key = "left"}}, "repressed nav should work in resumed layer")
+end
+
+local function testHeldNavStaysConsumedAfterBothTriggersRelease()
+  local state = newState()
+  activateLayer(state)
+  rsLayerLogic.processEvent(state, event("keyDown", "h", 170))
+  rsLayerLogic.processEvent(state, event("keyUp", "r", 180))
+  rsLayerLogic.processEvent(state, event("keyUp", "s", 190))
+  local repeated = rsLayerLogic.processEvent(state, event("keyDown", "h", 500, {["repeat"] = true}))
+  assertEqual(repeated.swallow, true, "held nav should remain consumed after full layer release")
+  assertNoActions(repeated.actions, "full layer release must stop arrows")
+  assertEqual(rsLayerLogic.processEvent(state, event("keyUp", "h", 510)).swallow, true, "owned nav up should be consumed")
+  assertEqual(rsLayerLogic.processEvent(state, event("keyDown", "h", 520)).swallow, false, "fresh nav outside layer should type normally")
+end
+
+local function testPreviouslyHeldNavDoesNotBecomeAnArrow()
+  local state = newState()
+  rsLayerLogic.processEvent(state, event("keyDown", "h", -10))
+  activateLayer(state)
+  local repeated = rsLayerLogic.processEvent(state, event("keyDown", "h", 170, {["repeat"] = true}))
+  assertEqual(repeated.swallow, false, "nav pressed outside layer should keep its original repeat")
+  assertNoActions(repeated.actions, "unmanaged nav repeat should not emit arrows")
+  assertEqual(rsLayerLogic.processEvent(state, event("keyUp", "h", 180)).swallow, false, "unmanaged nav release should pass through")
+end
+
+local function testResetAndExclusionClearNavPresses()
+  for _, excluded in ipairs({false, true}) do
+    local state = newState()
+    activateLayer(state)
+    rsLayerLogic.processEvent(state, event("keyDown", "h", 170))
+    if excluded then
+      local result = rsLayerLogic.processEvent(state, event("keyDown", "a", 180, {excluded = true}))
+      assertEqual(result.swallow, false, "excluded event should pass through")
+    else
+      rsLayerLogic.reset(state)
+    end
+    assertEqual(state.layerActive, false, "reset should clear the layer")
+    assertEqual(rsLayerLogic.processEvent(state, event("keyUp", "h", 190)).swallow, false, "reset should clear nav ownership")
+    activateLayer(state)
+    local fresh = rsLayerLogic.processEvent(state, event("keyDown", "h", 200))
+    assertActions(fresh.actions, {{key = "left"}}, "new press after reset should map normally")
+  end
 end
 
 local tests = {
@@ -455,17 +589,31 @@ local tests = {
   testFlushPendingOnOtherKey,
   testTriggerKeyUpWithoutManagedDownShouldPassThrough,
   testTriggerWithModifierShouldPassThrough,
-  testRepeatKeyDownDoesNotFlushPendingTrigger,
+  testUnrelatedRepeatFlushesPendingTrigger,
   testRepeatedTriggerAutoRepeatDoesNotChatter,
   testRepeatedLayerArrowInputsDoNotChatter,
   testHeldNavAutoRepeatEmitsOneArrowPerKeyDown,
   testActiveLayerTriggerBounceDoesNotLeakTriggerKeys,
   testTriggerReleaseBounceWindowExpires,
   testTriggerTapEmitsOriginalKeyCode,
+  testModifiedTriggerReleaseEndsLayer,
+  testManagedTriggerRepeatWithModifierDoesNotLeak,
+  testShortcutTriggerStaysUnmanagedAfterModifierRelease,
+  testDuplicateNavDownEmitsOnlyOnce,
+  testHeldNavStopsUntilReleaseAfterTriggerBounce,
+  testHeldNavStaysConsumedAfterBothTriggersRelease,
+  testPreviouslyHeldNavDoesNotBecomeAnArrow,
+  testResetAndExclusionClearNavPresses,
 }
 
+local failures = 0
 for _, test in ipairs(tests) do
-  test()
+  local ok, err = pcall(test)
+  if not ok then
+    failures = failures + 1
+    print(err)
+  end
 end
+assert(failures == 0, string.format("%d/%d rs_layer_logic tests failed", failures, #tests))
 
-print(string.format("rs_layer_logic tests passed (stress runs: %d)", STRESS_RUNS))
+print(string.format("rs_layer_logic tests passed (%d cases, stress runs: %d)", #tests, STRESS_RUNS))

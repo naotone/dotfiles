@@ -200,6 +200,7 @@ local function resetState(state)
   state.candidateStartMs = nil
   state.pendingOrder = {}
   state.lastLayerTriggerRelease = nil
+  state.navPresses = {}
   clearLayerModifiers(state)
   for _, key in ipairs(state.config.triggerKeys) do
     state.triggers[key] = {
@@ -328,7 +329,7 @@ local function maybeActivateLayer(state, nowMs)
   return true
 end
 
-local function processTriggerDown(state, key, timestampMs, keyCode)
+local function processTriggerDown(state, key, timestampMs, keyCode, flags, isRepeat)
   local result = emptyResult(false)
   local trigger = state.triggers[key]
   if not trigger then
@@ -336,15 +337,21 @@ local function processTriggerDown(state, key, timestampMs, keyCode)
   end
 
   if trigger.down then
-    if trigger.handledDown then
-      result.swallow = true
+    result.swallow = trigger.handledDown
+    if not trigger.handledDown then
+      result.actions = flushPending(state)
     end
     return result
   end
 
-  result.swallow = true
   trigger.down = true
   trigger.downAtMs = timestampMs
+  if hasTriggerModifiers(flags) or isRepeat then
+    result.actions = flushPending(state)
+    return result
+  end
+
+  result.swallow = true
   trigger.emitted = false
   trigger.handledDown = true
   trigger.outputKeyCode = keyCode
@@ -401,6 +408,9 @@ local function processTriggerUp(state, key, timestampMs)
     local otherWasDown = other and other.down or false
 
     state.layerActive = false
+    for _, press in pairs(state.navPresses) do
+      press.stopped = true
+    end
     state.candidateStartMs = nil
     clearLayerModifiers(state)
     clearPending(state, key)
@@ -439,6 +449,38 @@ local function processTriggerUp(state, key, timestampMs)
   trigger.outputKeyCode = nil
   setIdleIfAllTriggersReleased(state)
   maybeActivateLayer(state, timestampMs)
+  return result
+end
+
+local function processNavEvent(state, event, isRepeat)
+  local pressID = event.keyCode or event.key
+  local press = state.navPresses[pressID]
+  if event.type == "keyUp" then
+    state.navPresses[pressID] = nil
+    return emptyResult(press and press.handledDown)
+  end
+
+  if not press then
+    press = {
+      handledDown = state.layerActive and not isRepeat,
+      mappedKey = state.config.navMap[event.key],
+      stopped = false,
+    }
+    state.navPresses[pressID] = press
+  elseif not isRepeat and press.handledDown then
+    return emptyResult(true)
+  end
+
+  if not press.handledDown then
+    return nil
+  end
+
+  local result = emptyResult(true)
+  if state.layerActive and not press.stopped then
+    local action = keyAction(press.mappedKey, mergedModifiers(state, event.flags))
+    action["repeat"] = isRepeat
+    table.insert(result.actions, action)
+  end
   return result
 end
 
@@ -501,28 +543,18 @@ function M.processEvent(state, event)
   end
   local isRepeat = event["repeat"] and true or false
 
-  if eventType == "keyDown" and isRepeat and anyPending(state) then
-    return emptyResult(true)
-  end
-
-  if state.triggerSet[key] and hasTriggerModifiers(event.flags) then
-    return emptyResult(false)
-  end
-
   if state.triggerSet[key] then
     if eventType == "keyDown" then
-      return processTriggerDown(state, key, timestampMs, event.keyCode)
+      return processTriggerDown(state, key, timestampMs, event.keyCode, event.flags, isRepeat)
     end
     return processTriggerUp(state, key, timestampMs)
   end
 
-  if state.layerActive and state.config.navMap[key] then
-    local mappedKey = state.config.navMap[key]
-    local result = emptyResult(true)
-    if eventType == "keyDown" then
-      table.insert(result.actions, keyAction(mappedKey, mergedModifiers(state, event.flags)))
+  if state.config.navMap[key] then
+    local result = processNavEvent(state, event, isRepeat)
+    if result then
+      return result
     end
-    return result
   end
 
   if eventType == "keyDown" and anyPending(state) then
