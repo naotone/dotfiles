@@ -5,6 +5,7 @@ local rsLayerLogic = require("rs_layer_logic")
 local rsKeyResolver = require("rs_key_resolver")
 local rsLayerMenuModel = require("rs_layer_menu_model")
 local rsLayerActionRouter = require("rs_layer_action_router")
+local rsLayerEventAdapter = require("rs_layer_event_adapter")
 
 local simpleCmd = false
 local leftSet = false
@@ -261,7 +262,6 @@ if not rsKeyResolverState then
 end
 local rsLayerEnabled = true
 local rsLayerDebugEnabled = RS_LAYER_CONFIG.debug and true or false
-local postingSyntheticKey = false
 local rsEventSeq = 0
 local keyTap = nil
 local updateRsLayerMenu = nil
@@ -412,64 +412,29 @@ local function gotoAdjacentSpace(direction)
   return ok, err, ok and true or false
 end
 
-local function emitMissionControlAction(action)
-  local direction = rsLayerActionRouter.missionControlSpaceDirection(action)
-  if not direction then
-    return false
-  end
-
-  local ok, err, moved = gotoAdjacentSpace(direction)
-  if not ok then
-    hs.console.printStyledtext("RS Mission Control action failed: " .. tostring(err))
+local function performSpaceAction(direction)
+  local success, ok, err, moved = pcall(gotoAdjacentSpace, direction)
+  if not success or not ok then
+    hs.console.printStyledtext("RS Mission Control action failed: " .. tostring(success and err or ok))
   elseif moved then
     rsDebugLog("mission control space " .. direction)
   else
     rsDebugLog("mission control space " .. direction .. " skipped")
   end
-  return true
 end
 
-local function emitSyntheticActions(actions)
-  if not actions or #actions == 0 then
-    return
-  end
-
-  local keyTapWasEnabled = keyTap and keyTap:isEnabled() or false
-  if keyTapWasEnabled then
-    keyTap:stop()
-  end
-  postingSyntheticKey = true
-  local ok, err = pcall(function()
-    rsDebugLog("emit start actions=" .. formatActions(actions))
-    for _, action in ipairs(actions) do
-      if emitMissionControlAction(action) then
-        -- Handled by hs.spaces.
-      elseif action.keyCode then
-        hs.eventtap.event.newKeyEvent(action.modifiers or {}, action.keyCode, true):post()
-        hs.eventtap.event.newKeyEvent(action.modifiers or {}, action.keyCode, false):post()
-      else
-        keyStroke(action.modifiers or {}, action.key)
-      end
-    end
-  end)
-  postingSyntheticKey = false
-  if keyTapWasEnabled and keyTap then
-    keyTap:start()
-  end
-
-  if not ok then
-    hs.console.printStyledtext("RS layer emit error: " .. tostring(err))
-  else
-    rsDebugLog("emit end")
-  end
-end
+local rsEventAdapter = rsLayerEventAdapter.new({
+  event = hs.eventtap.event,
+  defer = function(callback) hs.timer.doAfter(0, callback) end,
+  onSpace = performSpaceAction,
+})
 
 keyTap = hs.eventtap.new({
   hs.eventtap.event.types.keyDown,
   hs.eventtap.event.types.keyUp,
   hs.eventtap.event.types.flagsChanged,
 }, function(event)
-  if postingSyntheticKey then
+  if rsEventAdapter.isSynthetic(event) then
     return false
   end
 
@@ -507,6 +472,7 @@ keyTap = hs.eventtap.new({
     ))
   end
 
+  local layerResult = {swallow = false, actions = {}}
   if rsLayerEnabled and (keyString or eventTypeName == "flagsChanged") then
     local ok, rsResult = pcall(rsLayerLogic.processEvent, rsLayerState, {
       type = eventTypeName,
@@ -552,14 +518,12 @@ keyTap = hs.eventtap.new({
           rsStateSummary()
         ))
       end
-      emitSyntheticActions(rsResult.actions)
-      if rsResult.swallow then
-        return true
-      end
+      layerResult = rsResult
     end
   end
 
-  if eventType == hs.eventtap.event.types.keyDown then
+  local blocked = false
+  if not layerResult.swallow and eventType == hs.eventtap.event.types.keyDown then
     local shortcuts = disableShortcuts[appName]
     if shortcuts and keyString then
       for _, shortcut in ipairs(shortcuts) do
@@ -574,13 +538,20 @@ keyTap = hs.eventtap.new({
         if modsMatch and keyString == shortcut.key and countActiveModifiers(flags) == #shortcut.mods then
           hs.console.printStyledtext(string.format("Blocked shortcut: %s+%s in %s",
             table.concat(shortcut.mods, "+"), shortcut.key, appName))
-          return true
+          blocked = true
+          break
         end
       end
     end
   end
 
-  return false
+  local ok, swallow, events = pcall(rsEventAdapter.dispatch, event, layerResult, blocked)
+  if not ok then
+    hs.console.printStyledtext("RS layer emit error: " .. tostring(swallow))
+    rsLayerLogic.reset(rsLayerState)
+    return layerResult.swallow or blocked
+  end
+  return swallow, events
 end)
 
 keyTap:start()
